@@ -4,10 +4,9 @@
 package turn
 
 import (
-	"crypto/md5" //nolint:gosec,gci
-	"fmt"
+	//nolint:gosec,gci
+
 	"net"
-	"strings"
 	"time"
 
 	"github.com/pion/logging"
@@ -47,11 +46,13 @@ type PermissionHandler func(clientAddr net.Addr, peerIP net.IP) (ok bool)
 
 // DefaultPermissionHandler is convince function that grants permission to all peers.
 func DefaultPermissionHandler(net.Addr, net.IP) (ok bool) {
-	return true
+	_ = "STUB: not implemented"
+
+	// PacketConnConfig is a single net.PacketConn to listen/write on.
+	// This will be used for UDP listeners.
+	return false
 }
 
-// PacketConnConfig is a single net.PacketConn to listen/write on.
-// This will be used for UDP listeners.
 type PacketConnConfig struct {
 	PacketConn net.PacketConn
 
@@ -65,19 +66,7 @@ type PacketConnConfig struct {
 	PermissionHandler PermissionHandler
 }
 
-func (c *PacketConnConfig) validate() error {
-	if c.PacketConn == nil {
-		return errConnUnset
-	}
-
-	if c.RelayAddressGenerator != nil {
-		if err := c.RelayAddressGenerator.Validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+func (c *PacketConnConfig) validate() error { _ = "STUB: not implemented"; return nil }
 
 // ListenerConfig is a single net.Listener to accept connections on.
 // This will be used for TCP, TLS and DTLS listeners.
@@ -94,17 +83,7 @@ type ListenerConfig struct {
 	PermissionHandler PermissionHandler
 }
 
-func (c *ListenerConfig) validate() error {
-	if c.Listener == nil {
-		return errListenerUnset
-	}
-
-	if c.RelayAddressGenerator == nil {
-		return errRelayAddressGeneratorUnset
-	}
-
-	return c.RelayAddressGenerator.Validate()
-}
+func (c *ListenerConfig) validate() error { _ = "STUB: not implemented"; return nil }
 
 // RequestAttributes represents attributes of a TURN request which
 // may be useful for authorizing the underlying request.
@@ -116,12 +95,12 @@ type AuthHandler = auth.AuthHandler
 
 // GenerateAuthKey is a convenience function to easily generate keys in the format used by AuthHandler.
 func GenerateAuthKey(username, realm, password string) []byte {
+	_ = "STUB: not implemented"
 	// #nosec
-	h := md5.New()
-	fmt.Fprint(h, strings.Join([]string{username, realm, password}, ":")) // nolint: errcheck
-
-	return h.Sum(nil)
+	return nil
 }
+
+// nolint: errcheck
 
 // EventHandler is a set of callbacks that the server will call at certain hook points during an
 // allocation's lifecycle.
@@ -169,22 +148,4 @@ type ServerConfig struct {
 	InboundMTU int
 }
 
-func (s *ServerConfig) validate() error {
-	if len(s.PacketConnConfigs) == 0 && len(s.ListenerConfigs) == 0 {
-		return errNoAvailableConns
-	}
-
-	for _, s := range s.PacketConnConfigs {
-		if err := s.validate(); err != nil {
-			return err
-		}
-	}
-
-	for _, s := range s.ListenerConfigs {
-		if err := s.validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+func (s *ServerConfig) validate() error { _ = "STUB: not implemented"; return nil }

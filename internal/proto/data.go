@@ -17,19 +17,7 @@ import "github.com/pion/stun/v3"
 type Data []byte
 
 // AddTo adds DATA to message.
-func (d Data) AddTo(m *stun.Message) error {
-	m.Add(stun.AttrData, d)
-
-	return nil
-}
+func (d Data) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // GetFrom decodes DATA from message.
-func (d *Data) GetFrom(m *stun.Message) error {
-	v, err := m.Get(stun.AttrData)
-	if err != nil {
-		return err
-	}
-	*d = v
-
-	return nil
-}
+func (d *Data) GetFrom(m *stun.Message) error { _ = "STUB: not implemented"; return nil }

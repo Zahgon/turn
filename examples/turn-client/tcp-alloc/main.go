@@ -5,9 +5,7 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -18,49 +16,17 @@ import (
 )
 
 func setupSignalingChannel(addrCh chan string, signaling bool, relayAddr string) {
-	addr := "127.0.0.1:5000"
-	if signaling { // nolint:nestif
-		go func() {
-			listener, err := net.Listen("tcp", addr) // nolint: noctx
-			if err != nil {
-				log.Panicf("Failed to create signaling server: %s", err)
-			}
-			defer listener.Close() //nolint:errcheck,gosec
-			for {
-				conn, err := listener.Accept()
-				if err != nil {
-					log.Panicf("Failed to accept: %s", err)
-				}
-
-				go func() {
-					var message string
-					message, err = bufio.NewReader(conn).ReadString('\n')
-					if err != nil {
-						log.Panicf("Failed to read from relayAddr: %s", err)
-					}
-					addrCh <- message[:len(message)-1]
-				}()
-
-				if _, err = fmt.Fprintf(conn, "%s\n", relayAddr); err != nil {
-					log.Panicf("Failed to write relayAddr: %s", err)
-				}
-			}
-		}()
-	} else {
-		conn, err := net.Dial("tcp", addr) // nolint: noctx
-		if err != nil {
-			log.Panicf("Error dialing: %s", err)
-		}
-		message, err := bufio.NewReader(conn).ReadString('\n')
-		if err != nil {
-			log.Panicf("Failed to read relayAddr: %s", err)
-		}
-		addrCh <- message[:len(message)-1]
-		if _, err = fmt.Fprintf(conn, "%s\n", relayAddr); err != nil {
-			log.Panicf("Failed to write relayAddr: %s", err)
-		}
-	}
+	_ = "STUB: not implemented"
+	return
 }
+
+// nolint:nestif
+
+// nolint: noctx
+
+//nolint:errcheck,gosec
+
+// nolint: noctx
 
 func main() { //nolint:cyclop
 	host := flag.String("host", "", "TURN Server name.")

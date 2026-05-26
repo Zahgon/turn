@@ -4,8 +4,6 @@
 package proto
 
 import (
-	"strconv"
-
 	"github.com/pion/stun/v3"
 )
 
@@ -19,16 +17,7 @@ const (
 	ProtoUDP Protocol = 17
 )
 
-func (p Protocol) String() string {
-	switch p {
-	case ProtoTCP:
-		return "TCP"
-	case ProtoUDP:
-		return "UDP"
-	default:
-		return strconv.Itoa(int(p))
-	}
-}
+func (p Protocol) String() string { _ = "STUB: not implemented"; return "" }
 
 // RequestedTransport represents REQUESTED-TRANSPORT attribute.
 //
@@ -41,34 +30,16 @@ type RequestedTransport struct {
 	Protocol Protocol
 }
 
-func (t RequestedTransport) String() string {
-	return "protocol: " + t.Protocol.String()
-}
+func (t RequestedTransport) String() string { _ = "STUB: not implemented"; return "" }
 
 const requestedTransportSize = 4
 
 // AddTo adds REQUESTED-TRANSPORT to message.
-func (t RequestedTransport) AddTo(m *stun.Message) error {
-	v := make([]byte, requestedTransportSize)
-	v[0] = byte(t.Protocol)
-	// b[1:4] is RFFU = 0.
-	// The RFFU field MUST be set to zero on transmission and MUST be
-	// ignored on reception. It is reserved for future uses.
-	m.Add(stun.AttrRequestedTransport, v)
+func (t RequestedTransport) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
-	return nil
-}
+// b[1:4] is RFFU = 0.
+// The RFFU field MUST be set to zero on transmission and MUST be
+// ignored on reception. It is reserved for future uses.
 
 // GetFrom decodes REQUESTED-TRANSPORT from message.
-func (t *RequestedTransport) GetFrom(m *stun.Message) error {
-	v, err := m.Get(stun.AttrRequestedTransport)
-	if err != nil {
-		return err
-	}
-	if err = stun.CheckSize(stun.AttrRequestedTransport, len(v), requestedTransportSize); err != nil {
-		return err
-	}
-	t.Protocol = Protocol(v[0])
-
-	return nil
-}
+func (t *RequestedTransport) GetFrom(m *stun.Message) error { _ = "STUB: not implemented"; return nil }

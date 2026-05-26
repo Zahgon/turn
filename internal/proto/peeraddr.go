@@ -21,19 +21,13 @@ type PeerAddress struct {
 	Port int
 }
 
-func (a PeerAddress) String() string {
-	return stun.XORMappedAddress(a).String()
-}
+func (a PeerAddress) String() string { _ = "STUB: not implemented"; return "" }
 
 // AddTo adds XOR-PEER-ADDRESS to message.
-func (a PeerAddress) AddTo(m *stun.Message) error {
-	return stun.XORMappedAddress(a).AddToAs(m, stun.AttrXORPeerAddress)
-}
+func (a PeerAddress) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // GetFrom decodes XOR-PEER-ADDRESS from message.
-func (a *PeerAddress) GetFrom(m *stun.Message) error {
-	return (*stun.XORMappedAddress)(a).GetFromAs(m, stun.AttrXORPeerAddress)
-}
+func (a *PeerAddress) GetFrom(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // XORPeerAddress implements XOR-PEER-ADDRESS attribute.
 //

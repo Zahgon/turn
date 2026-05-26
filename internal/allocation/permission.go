@@ -25,21 +25,10 @@ type Permission struct {
 
 // NewPermission create a new Permission.
 func NewPermission(addr net.Addr, log logging.LeveledLogger, timeout time.Duration) *Permission {
-	return &Permission{
-		Addr:    addr,
-		log:     log,
-		timeout: timeout,
-	}
+	_ = "STUB: not implemented"
+	return nil
 }
 
-func (p *Permission) start(lifetime time.Duration) {
-	p.lifetimeTimer = time.AfterFunc(lifetime, func() {
-		p.allocation.RemovePermission(p.Addr)
-	})
-}
+func (p *Permission) start(lifetime time.Duration) { _ = "STUB: not implemented"; return }
 
-func (p *Permission) refresh(lifetime time.Duration) {
-	if !p.lifetimeTimer.Reset(lifetime) {
-		p.log.Errorf("Failed to reset permission timer for %v %v", p.Addr, p.allocation.fiveTuple)
-	}
-}
+func (p *Permission) refresh(lifetime time.Duration) { _ = "STUB: not implemented"; return }

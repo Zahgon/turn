@@ -4,8 +4,6 @@
 package turn
 
 import (
-	b64 "encoding/base64"
-	"fmt"
 	"math"
 	"net"
 	"sync"
@@ -14,7 +12,6 @@ import (
 	"github.com/pion/logging"
 	"github.com/pion/stun/v3"
 	"github.com/pion/transport/v4"
-	"github.com/pion/transport/v4/stdnet"
 	"github.com/pion/turn/v5/internal/client"
 	"github.com/pion/turn/v5/internal/proto"
 )
@@ -104,25 +101,11 @@ type Client struct {
 func inferAddressFamilyFromConn(
 	conn net.PacketConn,
 ) (proto.RequestedAddressFamily, error) {
-	addr := conn.LocalAddr()
-
-	switch a := addr.(type) {
-	case *net.UDPAddr:
-		if a.IP.To4() != nil {
-			return proto.RequestedFamilyIPv4, nil
-		}
-
-		return proto.RequestedFamilyIPv6, nil
-	case *net.TCPAddr:
-		if a.IP.To4() != nil {
-			return proto.RequestedFamilyIPv4, nil
-		}
-
-		return proto.RequestedFamilyIPv6, nil
-	default:
-		return 0, fmt.Errorf("cannot infer address family from %T", addr) //nolint:err113
-	}
+	_ = "STUB: not implemented"
+	return *new(proto.RequestedAddressFamily), nil
 }
+
+//nolint:err113
 
 // getRequestedAddressFamily determines the address family to use
 // for TURN allocations. It follows this priority:
@@ -133,23 +116,14 @@ func getRequestedAddressFamily(
 	log logging.LeveledLogger,
 	config *ClientConfig,
 ) proto.RequestedAddressFamily {
+	_ = "STUB: not implemented"
 	// If explicitly set, use it
-	if config.RequestedAddressFamily != 0 {
-		return config.RequestedAddressFamily
-	}
-
-	// Try to infer from the PacketConn
-	if inferred, err := inferAddressFamilyFromConn(config.Conn); err == nil {
-		log.Debugf("Inferred address family %v from connection", inferred)
-
-		return inferred
-	}
-
-	log.Debugf("Could not infer address family, defaulting to IPv4")
-
-	// Default to IPv4 per RFC 6156
-	return proto.RequestedFamilyIPv4
+	return *new(proto.RequestedAddressFamily)
 }
+
+// Try to infer from the PacketConn
+
+// Default to IPv4 per RFC 6156
 
 // appendRequestedAddressFamilyOrReservation adds either RESERVATION-TOKEN or
 // REQUESTED-ADDRESS-FAMILY to the provided setters slice, respecting mutual
@@ -161,200 +135,84 @@ func appendRequestedAddressFamilyOrReservation(
 	requestedFamily proto.RequestedAddressFamily,
 	reservationToken []byte,
 ) []stun.Setter {
+	_ = "STUB: not implemented"
 	// Clients MUST NOT include a REQUESTED-ADDRESS-FAMILY attribute in an
 	// Allocate request that contains a RESERVATION-TOKEN attribute.
 	// https://www.rfc-editor.org/rfc/rfc6156#section-4.1
-	if len(reservationToken) != 0 {
-		return append(setters, proto.ReservationToken(reservationToken))
-	}
-
-	// Only include the attribute when IPv6 is explicitly requested.
-	// This indirectly implied by the specification:
-	// If the REQUESTED-ADDRESS-FAMILY attribute is absent, the server MUST
-	// allocate an IPv4-relayed transport address for the TURN client.
-	// https://www.rfc-editor.org/rfc/rfc6156#section-4.2
-	if requestedFamily == proto.RequestedFamilyIPv6 {
-		return append(setters, requestedFamily)
-	}
-
-	return setters
+	return nil
 }
+
+// Only include the attribute when IPv6 is explicitly requested.
+// This indirectly implied by the specification:
+// If the REQUESTED-ADDRESS-FAMILY attribute is absent, the server MUST
+// allocate an IPv4-relayed transport address for the TURN client.
+// https://www.rfc-editor.org/rfc/rfc6156#section-4.2
 
 // NewClient returns a new Client instance. listeningAddress is the address and port to listen on,
 // default "0.0.0.0:0".
-func NewClient(config *ClientConfig) (*Client, error) { //nolint:gocyclo,cyclop
-	loggerFactory := config.LoggerFactory
-	if loggerFactory == nil {
-		loggerFactory = logging.NewDefaultLoggerFactory()
-	}
-
-	log := loggerFactory.NewLogger("turnc")
-
-	if config.Conn == nil {
-		return nil, errNilConn
-	}
-
-	rto := defaultRTO
-	if config.RTO > 0 {
-		rto = config.RTO
-	}
-
-	if config.Net == nil {
-		n, err := stdnet.NewNet()
-		if err != nil {
-			return nil, err
-		}
-		config.Net = n
-	}
-
-	// Determine the requested address family (RFC 6156)
-	requestedAddressFamily := getRequestedAddressFamily(log, config)
-
-	var stunServ, turnServ net.Addr
-	var err error
-
-	if len(config.STUNServerAddr) > 0 {
-		stunServ, err = config.Net.ResolveUDPAddr("udp", config.STUNServerAddr)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debugf("Resolved STUN server %s to %s", config.STUNServerAddr, stunServ)
-	}
-
-	if len(config.TURNServerAddr) > 0 {
-		turnServ, err = config.Net.ResolveUDPAddr("udp", config.TURNServerAddr)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debugf("Resolved TURN server %s to %s", config.TURNServerAddr, turnServ)
-	}
-
-	client := &Client{
-		conn:                      config.Conn,
-		stunServerAddr:            stunServ,
-		turnServerAddr:            turnServ,
-		username:                  stun.NewUsername(config.Username),
-		password:                  config.Password,
-		realm:                     stun.NewRealm(config.Realm),
-		software:                  stun.NewSoftware(config.Software),
-		trMap:                     client.NewTransactionMap(),
-		net:                       config.Net,
-		rto:                       rto,
-		log:                       log,
-		evenPort:                  config.evenPort,
-		reservationToken:          config.reservationToken,
-		requestedAddressFamily:    requestedAddressFamily,
-		permissionRefreshInterval: config.PermissionRefreshInterval,
-		bindingRefreshInterval:    config.bindingRefreshInterval,
-		bindingCheckInterval:      config.bindingCheckInterval,
-	}
-
-	return client, nil
+func NewClient(config *ClientConfig) (*Client, error) {
+	_ = "STUB: not implemented" //nolint:gocyclo,cyclop
+	return nil, nil
 }
+
+// Determine the requested address family (RFC 6156)
 
 // TURNServerAddr return the TURN server address.
 func (c *Client) TURNServerAddr() net.Addr {
-	return c.turnServerAddr
+	_ = "STUB: not implemented"
+	return *
+
+	// STUNServerAddr return the STUN server address.
+	new(net.Addr)
 }
 
-// STUNServerAddr return the STUN server address.
 func (c *Client) STUNServerAddr() net.Addr {
-	return c.stunServerAddr
+	_ = "STUB: not implemented"
+	return *
+
+	// Username returns username.
+	new(net.Addr)
 }
 
-// Username returns username.
 func (c *Client) Username() stun.Username {
-	return c.username
+	_ = "STUB: not implemented"
+
+	// Realm return realm.
+	return *new(stun.Username)
 }
 
-// Realm return realm.
 func (c *Client) Realm() stun.Realm {
-	return c.realm
+	_ = "STUB: not implemented"
+
+	// WriteTo sends data to the specified destination using the base socket.
+	return *new(stun.Realm)
 }
 
-// WriteTo sends data to the specified destination using the base socket.
 func (c *Client) WriteTo(data []byte, to net.Addr) (int, error) {
-	return c.conn.WriteTo(data, to)
+	_ = "STUB: not implemented"
+	return 0, nil
 }
 
 // Listen will have this client start listening on the conn provided via the config.
 // This is optional. If not used, you will need to call HandleInbound method
 // to supply incoming data, instead.
-func (c *Client) Listen() error {
-	if err := c.listenTryLock.Lock(); err != nil {
-		return fmt.Errorf("%w: %s", errAlreadyListening, err.Error())
-	}
-
-	go func() {
-		buf := make([]byte, maxDataBufferSize)
-		for {
-			n, from, err := c.conn.ReadFrom(buf)
-			if err != nil {
-				c.log.Debugf("Failed to read: %s. Exiting loop", err)
-
-				break
-			}
-
-			_, err = c.HandleInbound(buf[:n], from)
-			if err != nil {
-				c.log.Debugf("Failed to handle inbound message: %s. Exiting loop", err)
-
-				break
-			}
-		}
-
-		c.listenTryLock.Unlock()
-	}()
-
-	return nil
-}
+func (c *Client) Listen() error { _ = "STUB: not implemented"; return nil }
 
 // Close closes this client.
-func (c *Client) Close() {
-	c.mutexTrMap.Lock()
-	defer c.mutexTrMap.Unlock()
-
-	c.trMap.CloseAndDeleteAll()
-}
+func (c *Client) Close() { _ = "STUB: not implemented"; return }
 
 // TransactionID & Base64: https://play.golang.org/p/EEgmJDI971P
 
 // SendBindingRequestTo sends a new STUN request to the given transport address.
 func (c *Client) SendBindingRequestTo(to net.Addr) (net.Addr, error) {
-	attrs := []stun.Setter{stun.TransactionID, stun.BindingRequest}
-	if len(c.software) > 0 {
-		attrs = append(attrs, c.software)
-	}
-
-	msg, err := stun.Build(attrs...)
-	if err != nil {
-		return nil, err
-	}
-	trRes, err := c.PerformTransaction(msg, to, false)
-	if err != nil {
-		return nil, err
-	}
-
-	var reflAddr stun.XORMappedAddress
-	if err := reflAddr.GetFrom(trRes.Msg); err != nil {
-		return nil, err
-	}
-
-	return &net.UDPAddr{
-		IP:   reflAddr.IP,
-		Port: reflAddr.Port,
-	}, nil
+	_ = "STUB: not implemented"
+	return *new(net.Addr), nil
 }
 
 // SendBindingRequest sends a new STUN request to the STUN server.
 func (c *Client) SendBindingRequest() (net.Addr, error) {
-	if c.stunServerAddr == nil {
-		return nil, errSTUNServerAddressNotSet
-	}
-
-	return c.SendBindingRequestTo(c.stunServerAddr)
+	_ = "STUB: not implemented"
+	return *new(net.Addr), nil
 }
 
 func (c *Client) sendAllocateRequest(protocol proto.Protocol) ( //nolint:cyclop
@@ -364,259 +222,55 @@ func (c *Client) sendAllocateRequest(protocol proto.Protocol) ( //nolint:cyclop
 	reservationToken proto.ReservationToken,
 	err error,
 ) {
-	allocationSetters := []stun.Setter{
-		stun.TransactionID,
-		stun.NewType(stun.MethodAllocate, stun.ClassRequest),
-		proto.RequestedTransport{Protocol: protocol},
-	}
-
-	allocationSetters = appendRequestedAddressFamilyOrReservation(
-		allocationSetters, c.requestedAddressFamily, c.reservationToken,
-	)
-	if c.evenPort {
-		allocationSetters = append(allocationSetters, proto.EvenPort{ReservePort: true})
-	}
-
-	// FINGERPRINT must be the last attribute per RFC 5389
-	allocationSetters = append(allocationSetters, stun.Fingerprint)
-
-	msg, err := stun.Build(allocationSetters...)
-	if err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-
-	trRes, err := c.PerformTransaction(msg, c.turnServerAddr, false)
-	if err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-
-	res := trRes.Msg
-
-	// Anonymous allocate failed, trying to authenticate.
-	if err = nonce.GetFrom(res); err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-	if err = c.realm.GetFrom(res); err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-	c.realm = append([]byte(nil), c.realm...)
-	c.integrity = stun.NewLongTermIntegrity(
-		c.username.String(), c.realm.String(), c.password,
-	)
-	// Trying to authorize.
-	allocationSetters = []stun.Setter{
-		stun.TransactionID,
-		stun.NewType(stun.MethodAllocate, stun.ClassRequest),
-		proto.RequestedTransport{Protocol: protocol},
-		&c.username,
-		&c.realm,
-		&nonce,
-		&c.integrity,
-	}
-
-	allocationSetters = appendRequestedAddressFamilyOrReservation(
-		allocationSetters, c.requestedAddressFamily, c.reservationToken,
-	)
-	if c.evenPort {
-		allocationSetters = append(allocationSetters, proto.EvenPort{ReservePort: true})
-	}
-
-	// FINGERPRINT must be the last attribute per RFC 5389
-	allocationSetters = append(allocationSetters, stun.Fingerprint)
-
-	msg, err = stun.Build(allocationSetters...)
-	if err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-
-	trRes, err = c.PerformTransaction(msg, c.turnServerAddr, false)
-	if err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-	res = trRes.Msg
-
-	if res.Type.Class == stun.ClassErrorResponse {
-		var code stun.ErrorCodeAttribute
-		if err = code.GetFrom(res); err == nil {
-			turnError := &stun.TurnError{
-				StunMessageType: res.Type,
-				ErrorCodeAttr:   code,
-			}
-
-			return relayed, lifetime, nonce, reservationToken, turnError
-		}
-
-		return relayed, lifetime, nonce, reservationToken, fmt.Errorf("%s", res.Type) //nolint:err113
-	}
-
-	// Getting relayed addresses from response.
-	if err := relayed.GetFrom(res); err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-
-	// Getting lifetime from response
-	if err := lifetime.GetFrom(res); err != nil {
-		return relayed, lifetime, nonce, reservationToken, err
-	}
-
-	// Getting reservation-token from response
-	if c.evenPort {
-		if err := reservationToken.GetFrom(res); err != nil {
-			return relayed, lifetime, nonce, reservationToken, err
-		}
-	}
-
-	return relayed, lifetime, nonce, reservationToken, nil
+	_ = "STUB: not implemented"
+	return *new(proto.RelayedAddress), *new(proto.Lifetime), *new(stun.Nonce), *new(proto.ReservationToken), nil
 }
+
+// FINGERPRINT must be the last attribute per RFC 5389
+
+// Anonymous allocate failed, trying to authenticate.
+
+// Trying to authorize.
+
+// FINGERPRINT must be the last attribute per RFC 5389
+
+//nolint:err113
+
+// Getting relayed addresses from response.
+
+// Getting lifetime from response
+
+// Getting reservation-token from response
 
 // Allocate sends a TURN allocation request to the given transport address.
 func (c *Client) Allocate() (net.PacketConn, error) {
-	if err := c.allocTryLock.Lock(); err != nil {
-		return nil, fmt.Errorf("%w: %s", errOneAllocateOnly, err.Error())
-	}
-	defer c.allocTryLock.Unlock()
-
-	relayedConn := c.relayedUDPConn()
-	if relayedConn != nil {
-		return nil, fmt.Errorf("%w: %s", errAlreadyAllocated, relayedConn.LocalAddr().String())
-	}
-
-	relayed, lifetime, nonce, reservationToken, err := c.sendAllocateRequest(proto.ProtoUDP)
-	if err != nil {
-		return nil, err
-	}
-
-	relayedAddr := &net.UDPAddr{
-		IP:   relayed.IP,
-		Port: relayed.Port,
-	}
-
-	relayedConn = client.NewUDPConn(&client.AllocationConfig{
-		Client:                    c,
-		RelayedAddr:               relayedAddr,
-		ServerAddr:                c.turnServerAddr,
-		Realm:                     c.realm,
-		Username:                  c.username,
-		Integrity:                 c.integrity,
-		Nonce:                     nonce,
-		Lifetime:                  lifetime.Duration,
-		Net:                       c.net,
-		Log:                       c.log,
-		PermissionRefreshInterval: c.permissionRefreshInterval,
-		BindingRefreshInterval:    c.bindingRefreshInterval,
-		BindingCheckInterval:      c.bindingCheckInterval,
-	})
-	c.setRelayedUDPConn(relayedConn)
-	c.setReservationToken(reservationToken)
-
-	return relayedConn, nil
+	_ = "STUB: not implemented"
+	return *new(net.PacketConn), nil
 }
 
 // AllocateTCP creates a new TCP allocation at the TURN server.
 func (c *Client) AllocateTCP() (*client.TCPAllocation, error) {
-	if err := c.allocTryLock.Lock(); err != nil {
-		return nil, fmt.Errorf("%w: %s", errOneAllocateOnly, err.Error())
-	}
-	defer c.allocTryLock.Unlock()
-
-	allocation := c.getTCPAllocation()
-	if allocation != nil {
-		return nil, fmt.Errorf("%w: %s", errAlreadyAllocated, allocation.Addr())
-	}
-
-	relayed, lifetime, nonce, reservationToken, err := c.sendAllocateRequest(proto.ProtoTCP)
-	if err != nil {
-		return nil, err
-	}
-
-	relayedAddr := &net.TCPAddr{
-		IP:   relayed.IP,
-		Port: relayed.Port,
-	}
-
-	allocation = client.NewTCPAllocation(&client.AllocationConfig{
-		Client:      c,
-		RelayedAddr: relayedAddr,
-		ServerAddr:  c.turnServerAddr,
-		Realm:       c.realm,
-		Username:    c.username,
-		Integrity:   c.integrity,
-		Nonce:       nonce,
-		Lifetime:    lifetime.Duration,
-		Net:         c.net,
-		Log:         c.log,
-	})
-
-	c.setTCPAllocation(allocation)
-	c.setReservationToken(reservationToken)
-
-	return allocation, nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
 
 // CreatePermission Issues a CreatePermission request for the supplied addresses
 // as described in https://datatracker.ietf.org/doc/html/rfc5766#section-9
-func (c *Client) CreatePermission(addrs ...net.Addr) error {
-	if conn := c.relayedUDPConn(); conn != nil {
-		if err := conn.CreatePermissions(addrs...); err != nil {
-			return err
-		}
-	}
-
-	if allocation := c.getTCPAllocation(); allocation != nil {
-		if err := allocation.CreatePermissions(addrs...); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+func (c *Client) CreatePermission(addrs ...net.Addr) error { _ = "STUB: not implemented"; return nil }
 
 // PerformTransaction performs STUN transaction.
 func (c *Client) PerformTransaction(msg *stun.Message, to net.Addr, ignoreResult bool) (client.TransactionResult,
 	error,
 ) {
-	trKey := b64.StdEncoding.EncodeToString(msg.TransactionID[:])
-
-	raw := make([]byte, len(msg.Raw))
-	copy(raw, msg.Raw)
-
-	tr := client.NewTransaction(&client.TransactionConfig{
-		Key:          trKey,
-		Raw:          raw,
-		To:           to,
-		Interval:     c.rto,
-		IgnoreResult: ignoreResult,
-	})
-
-	c.trMap.Insert(trKey, tr)
-
-	c.log.Tracef("Start %s transaction %s to %s", msg.Type, trKey, tr.To)
-	_, err := c.conn.WriteTo(tr.Raw, to)
-	if err != nil {
-		return client.TransactionResult{}, err
-	}
-
-	tr.StartRtxTimer(c.onRtxTimeout)
-
-	// If ignoreResult is true, get the transaction going and return immediately
-	if ignoreResult {
-		return client.TransactionResult{}, nil
-	}
-
-	res := tr.WaitForResult()
-	if res.Err != nil {
-		return res, res.Err
-	}
-
-	return res, nil
+	_ = "STUB: not implemented"
+	return *new(client.TransactionResult), nil
 }
+
+// If ignoreResult is true, get the transaction going and return immediately
 
 // OnDeallocated is called when de-allocation of relay address has been complete.
 // (Called by UDPConn).
-func (c *Client) OnDeallocated(net.Addr) {
-	c.setRelayedUDPConn(nil)
-	c.setTCPAllocation(nil)
-}
+func (c *Client) OnDeallocated(net.Addr) { _ = "STUB: not implemented"; return }
 
 // HandleInbound handles data received.
 // This method handles incoming packet de-multiplex it by the source address
@@ -626,6 +280,7 @@ func (c *Client) OnDeallocated(net.Addr) {
 // If not handled, it is assumed that the packet is application data.
 // If an error is returned, the caller should discard the packet regardless.
 func (c *Client) HandleInbound(data []byte, from net.Addr) (bool, error) {
+	_ = "STUB: not implemented"
 	// +-------------------+-------------------------------+
 	// |   Return Values   |                               |
 	// +-------------------+       Meaning / Action        |
@@ -643,231 +298,51 @@ func (c *Client) HandleInbound(data []byte, from net.Addr) (bool, error) {
 	//  - Malformed packet (parse error)
 	//  - STUN message was a request
 	//  - Non-STUN message from the STUN server
-
-	switch {
-	case stun.IsMessage(data):
-		return true, c.handleSTUNMessage(data, from)
-	case proto.IsChannelData(data):
-		return true, c.handleChannelData(data)
-	case c.stunServerAddr != nil && from.String() == c.stunServerAddr.String():
-		// Received from STUN server but it is not a STUN message
-		return true, errNonSTUNMessage
-	default:
-		// Assume, this is an application data
-		c.log.Tracef("Ignoring non-STUN/TURN packet")
-	}
-
 	return false, nil
 }
 
-func (c *Client) handleSTUNMessage(data []byte, from net.Addr) error { //nolint:cyclop
-	raw := make([]byte, len(data))
-	copy(raw, data)
+// Received from STUN server but it is not a STUN message
 
-	msg := &stun.Message{Raw: raw}
-	if err := msg.Decode(); err != nil {
-		return fmt.Errorf("%w: %s", errFailedToDecodeSTUN, err.Error())
-	}
+// Assume, this is an application data
 
-	if msg.Type.Class == stun.ClassRequest {
-		return fmt.Errorf("%w : %s", errUnexpectedSTUNRequestMessage, msg.String())
-	}
-
-	if msg.Type.Class == stun.ClassIndication { // nolint:nestif
-		switch msg.Type.Method {
-		case stun.MethodData:
-			var peerAddr proto.PeerAddress
-			if err := peerAddr.GetFrom(msg); err != nil {
-				return err
-			}
-			from = &net.UDPAddr{
-				IP:   peerAddr.IP,
-				Port: peerAddr.Port,
-			}
-
-			var data proto.Data
-			if err := data.GetFrom(msg); err != nil {
-				return err
-			}
-
-			c.log.Tracef("Data indication received from %s", from)
-
-			relayedConn := c.relayedUDPConn()
-			if relayedConn == nil {
-				c.log.Debug("No relayed conn allocated")
-
-				return nil // Silently discard
-			}
-			relayedConn.HandleInbound(data, from)
-		case stun.MethodConnectionAttempt:
-			var peerAddr proto.PeerAddress
-			if err := peerAddr.GetFrom(msg); err != nil {
-				return err
-			}
-
-			addr := &net.TCPAddr{
-				IP:   peerAddr.IP,
-				Port: peerAddr.Port,
-			}
-
-			var cid proto.ConnectionID
-			if err := cid.GetFrom(msg); err != nil {
-				return err
-			}
-
-			c.log.Debugf("Connection attempt from %s", addr)
-
-			allocation := c.getTCPAllocation()
-			if allocation == nil {
-				c.log.Debug("No TCP allocation exists")
-
-				return nil // Silently discard
-			}
-
-			allocation.HandleConnectionAttempt(addr, cid)
-		default:
-			c.log.Debug("Received unsupported STUN method")
-		}
-
-		return nil
-	}
-
-	// This is a STUN response message (transactional)
-	// The type is either:
-	// - stun.ClassSuccessResponse
-	// - stun.ClassErrorResponse
-
-	trKey := b64.StdEncoding.EncodeToString(msg.TransactionID[:])
-
-	c.mutexTrMap.Lock()
-	tr, ok := c.trMap.Find(trKey)
-	if !ok {
-		c.mutexTrMap.Unlock()
-		// Silently discard
-		c.log.Debugf("No transaction for %s", msg)
-
-		return nil
-	}
-
-	// End the transaction
-	tr.StopRtxTimer()
-	c.trMap.Delete(trKey)
-	c.mutexTrMap.Unlock()
-
-	if !tr.WriteResult(client.TransactionResult{
-		Msg:     msg,
-		From:    from,
-		Retries: tr.Retries(),
-	}) {
-		c.log.Debugf("No listener for %s", msg)
-	}
-
+func (c *Client) handleSTUNMessage(data []byte, from net.Addr) error {
+	_ = "STUB: not implemented" //nolint:cyclop
 	return nil
 }
 
-func (c *Client) handleChannelData(data []byte) error {
-	chData := &proto.ChannelData{
-		Raw: make([]byte, len(data)),
-	}
-	copy(chData.Raw, data)
-	if err := chData.Decode(); err != nil {
-		return err
-	}
+// nolint:nestif
 
-	relayedConn := c.relayedUDPConn()
-	if relayedConn == nil {
-		c.log.Debug("No relayed conn allocated")
+// Silently discard
 
-		return nil // Silently discard
-	}
+// Silently discard
 
-	addr, ok := relayedConn.FindAddrByChannelNumber(uint16(chData.Number))
-	if !ok {
-		return fmt.Errorf("%w: %d", errChannelBindNotFound, int(chData.Number))
-	}
+// This is a STUN response message (transactional)
+// The type is either:
+// - stun.ClassSuccessResponse
+// - stun.ClassErrorResponse
 
-	c.log.Tracef("Channel data received from %s (ch=%d)", addr.String(), int(chData.Number))
+// Silently discard
 
-	relayedConn.HandleInbound(chData.Data, addr)
+// End the transaction
 
-	return nil
-}
+func (c *Client) handleChannelData(data []byte) error { _ = "STUB: not implemented"; return nil }
 
-func (c *Client) onRtxTimeout(trKey string, nRtx int) {
-	c.mutexTrMap.Lock()
-	defer c.mutexTrMap.Unlock()
+// Silently discard
 
-	tr, ok := c.trMap.Find(trKey)
-	if !ok {
-		return // Already gone
-	}
+func (c *Client) onRtxTimeout(trKey string, nRtx int) { _ = "STUB: not implemented"; return }
 
-	if nRtx == maxRtxCount {
-		// All retransmissions failed
-		c.trMap.Delete(trKey)
-		if !tr.WriteResult(client.TransactionResult{
-			Err: fmt.Errorf("%w %s", errAllRetransmissionsFailed, trKey),
-		}) {
-			c.log.Debug("No listener for transaction")
-		}
+// Already gone
 
-		return
-	}
+// All retransmissions failed
 
-	c.log.Tracef("Retransmitting transaction %s to %s (nRtx=%d)",
-		trKey, tr.To, nRtx)
-	_, err := c.conn.WriteTo(tr.Raw, tr.To)
-	if err != nil {
-		c.trMap.Delete(trKey)
-		if !tr.WriteResult(client.TransactionResult{
-			Err: fmt.Errorf("%w %s", errFailedToRetransmitTransaction, trKey),
-		}) {
-			c.log.Debug("No listener for transaction")
-		}
+func (c *Client) setRelayedUDPConn(conn *client.UDPConn) { _ = "STUB: not implemented"; return }
 
-		return
-	}
-	tr.StartRtxTimer(c.onRtxTimeout)
-}
+func (c *Client) relayedUDPConn() *client.UDPConn { _ = "STUB: not implemented"; return nil }
 
-func (c *Client) setRelayedUDPConn(conn *client.UDPConn) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+func (c *Client) setTCPAllocation(alloc *client.TCPAllocation) { _ = "STUB: not implemented"; return }
 
-	c.relayedConn = conn
-}
+func (c *Client) getTCPAllocation() *client.TCPAllocation { _ = "STUB: not implemented"; return nil }
 
-func (c *Client) relayedUDPConn() *client.UDPConn {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+func (c *Client) setReservationToken(reservationToken []byte) { _ = "STUB: not implemented"; return }
 
-	return c.relayedConn
-}
-
-func (c *Client) setTCPAllocation(alloc *client.TCPAllocation) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	c.tcpAllocation = alloc
-}
-
-func (c *Client) getTCPAllocation() *client.TCPAllocation {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	return c.tcpAllocation
-}
-
-func (c *Client) setReservationToken(reservationToken []byte) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	c.reservationToken = reservationToken
-}
-
-func (c *Client) getReservationToken() []byte {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	return c.reservationToken
-}
+func (c *Client) getReservationToken() []byte { _ = "STUB: not implemented"; return nil }

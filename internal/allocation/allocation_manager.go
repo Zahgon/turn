@@ -4,14 +4,11 @@
 package allocation
 
 import (
-	"fmt"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pion/logging"
-	"github.com/pion/randutil"
 	"github.com/pion/turn/v5/internal/proto"
 )
 
@@ -95,74 +92,25 @@ type Manager struct {
 }
 
 // NewManager creates a new instance of Manager.
-func NewManager(config ManagerConfig) (*Manager, error) {
-	switch {
-	case config.AllocatePacketConn == nil:
-		return nil, errAllocatePacketConnMustBeSet
-	case config.AllocateListener == nil:
-		return nil, errAllocateListenerMustBeSet
-	case config.AllocateConn == nil:
-		return nil, errAllocateConnMustBeSet
-	case config.LeveledLogger == nil:
-		return nil, errLeveledLoggerMustBeSet
-	}
-
-	tcpConnectionBindTimeout := config.tcpConnectionBindTimeout
-	if tcpConnectionBindTimeout == 0 {
-		tcpConnectionBindTimeout = defaultTCPConnectionBindTimeout
-	}
-
-	return &Manager{
-		log:                      config.LeveledLogger,
-		allocations:              make(map[FiveTupleFingerprint]*Allocation, 64),
-		allocatePacketConn:       config.AllocatePacketConn,
-		allocateListener:         config.AllocateListener,
-		allocateConn:             config.AllocateConn,
-		permissionHandler:        config.PermissionHandler,
-		EventHandler:             config.EventHandler,
-		tcpConnectionBindTimeout: tcpConnectionBindTimeout,
-	}, nil
-}
+func NewManager(config ManagerConfig) (*Manager, error) { _ = "STUB: not implemented"; return nil, nil }
 
 // GetAllocation fetches the allocation matching the passed FiveTuple.
 func (m *Manager) GetAllocation(fiveTuple *FiveTuple) *Allocation {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	return m.allocations[fiveTuple.Fingerprint()]
+	_ = "STUB: not implemented"
+	return nil
 }
 
 // GetAllocationForUserID fetches the allocation matching the passed FiveTuple and Username.
 func (m *Manager) GetAllocationForUserID(fiveTuple *FiveTuple, userID string) *Allocation {
-	allocation := m.GetAllocation(fiveTuple)
-	if allocation != nil && allocation.userID == userID {
-		return allocation
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
 // AllocationCount returns the number of existing allocations.
-func (m *Manager) AllocationCount() int {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	return len(m.allocations)
-}
+func (m *Manager) AllocationCount() int { _ = "STUB: not implemented"; return 0 }
 
 // Close closes the manager and closes all allocations it manages.
-func (m *Manager) Close() error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	for _, a := range m.allocations {
-		if err := a.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+func (m *Manager) Close() error { _ = "STUB: not implemented"; return nil }
 
 // CreateAllocation creates a new allocation and starts relaying.
 func (m *Manager) CreateAllocation( // nolint: cyclop
@@ -174,187 +122,38 @@ func (m *Manager) CreateAllocation( // nolint: cyclop
 	userID, realm string,
 	addressFamily proto.RequestedAddressFamily,
 ) (*Allocation, error) {
-	switch {
-	case fiveTuple == nil:
-		return nil, errNilFiveTuple
-	case fiveTuple.SrcAddr == nil:
-		return nil, errNilFiveTupleSrcAddr
-	case fiveTuple.DstAddr == nil:
-		return nil, errNilFiveTupleDstAddr
-	case turnSocket == nil:
-		return nil, errNilTurnSocket
-	case lifetime == 0:
-		return nil, errLifetimeZero
-	}
-
-	if alloc := m.GetAllocation(fiveTuple); alloc != nil {
-		return nil, fmt.Errorf("%w: %v", errDupeFiveTuple, fiveTuple)
-	}
-	alloc := NewAllocation(turnSocket, fiveTuple, m.EventHandler, m.log)
-	alloc.userID = userID
-	alloc.realm = realm
-	alloc.addressFamily = addressFamily
-
-	switch protocol {
-	case proto.ProtoUDP:
-		network := "udp4"
-		if addressFamily == proto.RequestedFamilyIPv6 {
-			network = "udp6"
-		}
-		conn, relayAddr, err := m.allocatePacketConn(AllocateListenerConfig{
-			Network:       network,
-			UserID:        userID,
-			Realm:         realm,
-			RequestedPort: requestedPort,
-		})
-		if err != nil {
-			return nil, err
-		}
-		alloc.relayPacketConn = conn
-		alloc.RelayAddr = relayAddr
-	case proto.ProtoTCP:
-		network := "tcp4"
-		if addressFamily == proto.RequestedFamilyIPv6 {
-			network = "tcp6"
-		}
-		ln, relayAddr, err := m.allocateListener(AllocateListenerConfig{
-			Network:       network,
-			UserID:        userID,
-			Realm:         realm,
-			RequestedPort: requestedPort,
-		})
-		if err != nil {
-			return nil, err
-		}
-		alloc.relayListener = ln
-		alloc.RelayAddr = relayAddr
-	}
-
-	m.log.Debugf("Listening on relay address: %s", alloc.RelayAddr)
-
-	alloc.lifetimeTimer = time.AfterFunc(lifetime, func() {
-		m.DeleteAllocation(alloc.fiveTuple)
-	})
-
-	m.lock.Lock()
-	m.allocations[fiveTuple.Fingerprint()] = alloc
-	m.lock.Unlock()
-
-	if m.EventHandler.OnAllocationCreated != nil {
-		m.EventHandler.OnAllocationCreated(fiveTuple.SrcAddr, fiveTuple.DstAddr,
-			fiveTuple.Protocol.String(), userID, realm, alloc.RelayAddr, requestedPort)
-	}
-
-	// Only start the UDP relay loop for UDP allocations.
-	if alloc.relayPacketConn != nil {
-		go alloc.packetConnHandler(m)
-	}
-	// For TCP allocations, accept inbound connections on the relayed listener and notify the client.
-	if alloc.relayListener != nil {
-		go alloc.connHandler(m)
-	}
-
-	return alloc, nil
+	_ = "STUB: not implemented"
+	return nil, nil
 }
+
+// Only start the UDP relay loop for UDP allocations.
+
+// For TCP allocations, accept inbound connections on the relayed listener and notify the client.
 
 // DeleteAllocation removes an allocation.
-func (m *Manager) DeleteAllocation(fiveTuple *FiveTuple) {
-	fingerprint := fiveTuple.Fingerprint()
-
-	m.lock.Lock()
-	allocation := m.allocations[fingerprint]
-	delete(m.allocations, fingerprint)
-	m.lock.Unlock()
-
-	if allocation == nil {
-		return
-	}
-
-	m.lock.Lock()
-	if err := allocation.Close(); err != nil {
-		m.log.Errorf("Failed to close allocation: %v", err)
-	}
-	m.lock.Unlock()
-
-	if m.EventHandler.OnAllocationDeleted != nil {
-		m.EventHandler.OnAllocationDeleted(fiveTuple.SrcAddr, fiveTuple.DstAddr,
-			fiveTuple.Protocol.String(), allocation.userID, allocation.realm)
-	}
-}
+func (m *Manager) DeleteAllocation(fiveTuple *FiveTuple) { _ = "STUB: not implemented"; return }
 
 // CreateReservation stores the reservation for the token+port.
 func (m *Manager) CreateReservation(reservationToken string, port int) {
-	time.AfterFunc(30*time.Second, func() {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-		for i := len(m.reservations) - 1; i >= 0; i-- {
-			if m.reservations[i].token == reservationToken {
-				m.reservations = append(m.reservations[:i], m.reservations[i+1:]...)
-
-				return
-			}
-		}
-	})
-
-	m.lock.Lock()
-	m.reservations = append(m.reservations, &reservation{
-		token: reservationToken,
-		port:  port,
-	})
-	m.lock.Unlock()
+	_ = "STUB: not implemented"
+	return
 }
 
 // GetReservation returns the port for a given reservation if it exists.
 func (m *Manager) GetReservation(reservationToken string) (int, bool) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	for _, r := range m.reservations {
-		if r.token == reservationToken {
-			return r.port, true
-		}
-	}
-
+	_ = "STUB: not implemented"
 	return 0, false
 }
 
 // GetRandomEvenPort returns a random un-allocated udp4 port.
-func (m *Manager) GetRandomEvenPort() (int, error) {
-	for range 128 {
-		conn, addr, err := m.allocatePacketConn(AllocateListenerConfig{Network: "udp4"})
-		if err != nil {
-			return 0, err
-		}
-		udpAddr, ok := addr.(*net.UDPAddr)
-		err = conn.Close()
-		if err != nil {
-			return 0, err
-		}
-
-		if !ok {
-			return 0, errFailedToCastUDPAddr
-		}
-		if udpAddr.Port%2 == 0 {
-			return udpAddr.Port, nil
-		}
-	}
-
-	return 0, errFailedToAllocateEvenPort
-}
+func (m *Manager) GetRandomEvenPort() (int, error) { _ = "STUB: not implemented"; return 0, nil }
 
 // GrantPermission handles permission requests by calling the permission handler callback
 // associated with the TURN server listener socket.
 func (m *Manager) GrantPermission(sourceAddr net.Addr, peerIP net.IP) error {
+	_ = "STUB: not implemented"
 	// No permission handler: open
-	if m.permissionHandler == nil {
-		return nil
-	}
-
-	if m.permissionHandler(sourceAddr, peerIP) {
-		return nil
-	}
-
-	return errAdminProhibited
+	return nil
 }
 
 // CreateTCPConnection creates a new outbound TCP Connection and returns the Connection-ID
@@ -363,135 +162,36 @@ func (m *Manager) CreateTCPConnection( // nolint: cyclop
 	allocation *Allocation,
 	peerAddress proto.PeerAddress,
 ) (proto.ConnectionID, error) {
-	if len(peerAddress.IP) == 0 || peerAddress.Port == 0 {
-		return 0, errInvalidPeerAddress
-	}
-
-	relayAddr := allocation.RelayAddr
-	if allocation.RelayAddr == nil {
-		m.log.Warn("Failed to create TCP Connection: Relay address not available")
-
-		return 0, ErrTCPConnectionTimeoutOrFailure
-	}
-
-	remoteAddr := &net.TCPAddr{IP: peerAddress.IP, Port: peerAddress.Port}
-
-	m.lock.Lock()
-	if m.isDupeTCPConnection(allocation, remoteAddr) {
-		return 0, ErrDupeTCPConnection
-	}
-	m.lock.Unlock()
-
-	// RFC 6156:
-	// "After the request has been successfully authenticated, the TURN
-	// server allocates a transport address of the type indicated in the
-	// REQUESTED-ADDRESS-FAMILY attribute."
-	network := "tcp4"
-	if allocation.AddressFamily() == proto.RequestedFamilyIPv6 {
-		network = "tcp6"
-	}
-
-	conn, err := m.allocateConn(AllocateConnConfig{
-		Network:    network,
-		UserID:     allocation.userID,
-		Realm:      allocation.realm,
-		LocalAddr:  relayAddr,
-		RemoteAddr: remoteAddr,
-	}) // nolint: noctx
-	if err != nil {
-		m.log.Warnf("Failed to create TCP Connection: %v", err)
-
-		return 0, ErrTCPConnectionTimeoutOrFailure
-	}
-
-	connectionID, err := m.addTCPConnection(allocation, conn)
-	if err != nil {
-		if closeErr := conn.Close(); closeErr != nil {
-			m.log.Warnf("Failed to close TCP connection after ConnectionID generation failed: %v", closeErr)
-		}
-	}
-
-	return connectionID, err
+	_ = "STUB: not implemented"
+	return *new(proto.ConnectionID), nil
 }
+
+// RFC 6156:
+// "After the request has been successfully authenticated, the TURN
+// server allocates a transport address of the type indicated in the
+// REQUESTED-ADDRESS-FAMILY attribute."
+
+// nolint: noctx
 
 func (m *Manager) addTCPConnection(allocation *Allocation, conn net.Conn) (proto.ConnectionID, error) {
-	rand64, err := randutil.CryptoUint64()
-	if err != nil {
-		return 0, err
-	}
-
-	connectionID := proto.ConnectionID(uint32(rand64 >> 32)) // nolint: gosec
-
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	for _, a := range m.allocations {
-		if _, ok := a.tcpConnections[connectionID]; ok {
-			return 0, errFailedToGenerateConnectionID
-		}
-	}
-
-	newConnAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
-	if !ok {
-		return 0, ErrDupeTCPConnection
-	}
-
-	if m.isDupeTCPConnection(allocation, newConnAddr) {
-		return 0, ErrDupeTCPConnection
-	}
-
-	tcpConn := &tcpConnection{conn, atomic.Bool{}, nil}
-	allocation.tcpConnections[connectionID] = tcpConn
-	tcpConn.bindTimer = time.AfterFunc(m.tcpConnectionBindTimeout, func() {
-		if !tcpConn.isBound.Load() {
-			m.log.Warnf("Removing TCP Connection that was never bound %v %v", connectionID, allocation.fiveTuple)
-			allocation.RemoveTCPConnection(m, connectionID)
-		}
-	})
-
-	return connectionID, nil
+	_ = "STUB: not implemented"
+	return *new(proto.ConnectionID), nil
 }
 
-func (m *Manager) isDupeTCPConnection(allocation *Allocation, remoteAddr *net.TCPAddr) bool {
-	for i := range allocation.tcpConnections {
-		tcpAddr, ok := allocation.tcpConnections[i].RemoteAddr().(*net.TCPAddr)
-		if !ok {
-			return true
-		} else if tcpAddr.IP.Equal(remoteAddr.IP) && tcpAddr.Port == remoteAddr.Port {
-			return true
-		}
-	}
+// nolint: gosec
 
+func (m *Manager) isDupeTCPConnection(allocation *Allocation, remoteAddr *net.TCPAddr) bool {
+	_ = "STUB: not implemented"
 	return false
 }
 
 // GetTCPConnection returns the TCP Connection for the given ConnectionID.
 func (m *Manager) GetTCPConnection(userID string, connectionID proto.ConnectionID) net.Conn {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	for _, a := range m.allocations {
-		if tcpConnection, ok := a.tcpConnections[connectionID]; ok {
-			if a.userID != userID || tcpConnection.isBound.Swap(true) {
-				return nil
-			}
-
-			tcpConnection.bindTimer.Stop()
-
-			return tcpConnection
-		}
-	}
-
-	return nil
+	_ = "STUB: not implemented"
+	return *new(net.Conn)
 }
 
 func (m *Manager) RemoveTCPConnection(connectionID proto.ConnectionID) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	for _, a := range m.allocations {
-		if _, ok := a.tcpConnections[connectionID]; ok {
-			a.removeTCPConnection(connectionID)
-		}
-	}
+	_ = "STUB: not implemented"
+	return
 }

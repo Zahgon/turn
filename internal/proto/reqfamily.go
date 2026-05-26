@@ -19,45 +19,18 @@ var errInvalidRequestedFamilyValue = errors.New("invalid value for requested fam
 
 // GetFrom decodes REQUESTED-ADDRESS-FAMILY from message.
 func (f *RequestedAddressFamily) GetFrom(m *stun.Message) error {
-	v, err := m.Get(stun.AttrRequestedAddressFamily)
-	if err != nil {
-		return err
-	}
-	if err = stun.CheckSize(stun.AttrRequestedAddressFamily, len(v), requestedFamilySize); err != nil {
-		return err
-	}
-	switch v[0] {
-	case byte(RequestedFamilyIPv4), byte(RequestedFamilyIPv6):
-		*f = RequestedAddressFamily(v[0])
-	default:
-		return errInvalidRequestedFamilyValue
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
-func (f RequestedAddressFamily) String() string {
-	switch f {
-	case RequestedFamilyIPv4:
-		return "IPv4"
-	case RequestedFamilyIPv6:
-		return "IPv6"
-	default:
-		return "unknown"
-	}
-}
+func (f RequestedAddressFamily) String() string { _ = "STUB: not implemented"; return "" }
 
 // AddTo adds REQUESTED-ADDRESS-FAMILY to message.
-func (f RequestedAddressFamily) AddTo(m *stun.Message) error {
-	v := make([]byte, requestedFamilySize)
-	v[0] = byte(f)
-	// b[1:4] is RFFU = 0.
-	// The RFFU field MUST be set to zero on transmission and MUST be
-	// ignored on reception. It is reserved for future uses.
-	m.Add(stun.AttrRequestedAddressFamily, v)
+func (f RequestedAddressFamily) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
-	return nil
-}
+// b[1:4] is RFFU = 0.
+// The RFFU field MUST be set to zero on transmission and MUST be
+// ignored on reception. It is reserved for future uses.
 
 // Values for RequestedAddressFamily as defined in RFC 6156 Section 4.1.1.
 const (

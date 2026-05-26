@@ -19,13 +19,7 @@ type EvenPort struct {
 	ReservePort bool
 }
 
-func (p EvenPort) String() string {
-	if p.ReservePort {
-		return "reserve: true"
-	}
-
-	return "reserve: false"
-}
+func (p EvenPort) String() string { _ = "STUB: not implemented"; return "" }
 
 const (
 	evenPortSize = 1
@@ -33,29 +27,9 @@ const (
 )
 
 // AddTo adds EVEN-PORT to message.
-func (p EvenPort) AddTo(m *stun.Message) error {
-	v := make([]byte, evenPortSize)
-	if p.ReservePort {
-		// Set first bit to 1.
-		v[0] = firstBitSet
-	}
-	m.Add(stun.AttrEvenPort, v)
+func (p EvenPort) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
-	return nil
-}
+// Set first bit to 1.
 
 // GetFrom decodes EVEN-PORT from message.
-func (p *EvenPort) GetFrom(m *stun.Message) error {
-	v, err := m.Get(stun.AttrEvenPort)
-	if err != nil {
-		return err
-	}
-	if err = stun.CheckSize(stun.AttrEvenPort, len(v), evenPortSize); err != nil {
-		return err
-	}
-	if v[0]&firstBitSet > 0 {
-		p.ReservePort = true
-	}
-
-	return nil
-}
+func (p *EvenPort) GetFrom(m *stun.Message) error { _ = "STUB: not implemented"; return nil }

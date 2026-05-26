@@ -29,37 +29,11 @@ import (
 // In your own code, you may choose to use some other uniquely-identifying property
 // in the certificate e.g. serial number or combination of SANs.
 func getClientTLSAuthHandler(verifyOpts x509.VerifyOptions) turn.AuthHandler {
-	return func(ra *turn.RequestAttributes) (string, []byte, bool) {
-		if ra.TLS == nil || len(ra.TLS.PeerCertificates) == 0 {
-			log.Printf("Request not allowed: no TLS state metadata")
-
-			return "", nil, false
-		}
-
-		for _, cert := range ra.TLS.PeerCertificates {
-			if cert.Subject.CommonName != ra.Username {
-				log.Printf("Certificate CN %q does not match username %q", cert.Subject.CommonName, ra.Username)
-
-				continue
-			}
-
-			if _, err := cert.Verify(verifyOpts); err != nil {
-				log.Printf("Certificate validation failed: %v", err)
-
-				continue
-			}
-
-			log.Printf("Certificate validated for username %q", ra.Username)
-
-			// Note the empty password for certificate-based auth
-			return ra.Username, turn.GenerateAuthKey(ra.Username, ra.Realm, ""), true
-		}
-
-		log.Printf("Request not allowed: no valid certificates found")
-
-		return "", nil, false
-	}
+	_ = "STUB: not implemented"
+	return *new(turn.AuthHandler)
 }
+
+// Note the empty password for certificate-based auth
 
 func main() {
 	publicIP := flag.String("public-ip", "", "IP Address that TURN can be contacted by.")

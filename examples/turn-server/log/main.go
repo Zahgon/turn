@@ -6,7 +6,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/pion/stun/v3"
 	"github.com/pion/turn/v5"
 )
 
@@ -26,29 +24,13 @@ type stunLogger struct {
 }
 
 func (s *stunLogger) WriteTo(p []byte, addr net.Addr) (n int, err error) {
-	if n, err = s.PacketConn.WriteTo(p, addr); err == nil && stun.IsMessage(p) {
-		msg := &stun.Message{Raw: p}
-		if err = msg.Decode(); err != nil {
-			return
-		}
-
-		fmt.Printf("Outbound STUN: %s \n", msg.String())
-	}
-
-	return
+	_ = "STUB: not implemented"
+	return 0, nil
 }
 
 func (s *stunLogger) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	if n, addr, err = s.PacketConn.ReadFrom(p); err == nil && stun.IsMessage(p) {
-		msg := &stun.Message{Raw: p}
-		if err = msg.Decode(); err != nil {
-			return
-		}
-
-		fmt.Printf("Inbound STUN: %s \n", msg.String())
-	}
-
-	return
+	_ = "STUB: not implemented"
+	return 0, *new(net.Addr), nil
 }
 
 func main() {

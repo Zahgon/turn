@@ -16,16 +16,7 @@ const (
 	TCP
 )
 
-func (p Protocol) String() string {
-	switch p {
-	case UDP:
-		return "UDP"
-	case TCP:
-		return "TCP"
-	default:
-		return ""
-	}
-}
+func (p Protocol) String() string { _ = "STUB: not implemented"; return "" }
 
 // FiveTuple is the combination (client IP address and port, server IP
 // address and port, and transport protocol (currently one of UDP,
@@ -39,9 +30,7 @@ type FiveTuple struct {
 }
 
 // Equal asserts if two FiveTuples are equal.
-func (f *FiveTuple) Equal(b *FiveTuple) bool {
-	return f.Fingerprint() == b.Fingerprint()
-}
+func (f *FiveTuple) Equal(b *FiveTuple) bool { _ = "STUB: not implemented"; return false }
 
 // FiveTupleFingerprint is a comparable representation of a FiveTuple.
 type FiveTupleFingerprint struct {
@@ -52,24 +41,15 @@ type FiveTupleFingerprint struct {
 
 // Fingerprint is the identity of a FiveTuple.
 func (f *FiveTuple) Fingerprint() (fp FiveTupleFingerprint) {
-	srcIP, srcPort := netAddrIPAndPort(f.SrcAddr)
-	copy(fp.srcIP[:], srcIP)
-	fp.srcPort = srcPort
-	dstIP, dstPort := netAddrIPAndPort(f.DstAddr)
-	copy(fp.dstIP[:], dstIP)
-	fp.dstPort = dstPort
-	fp.protocol = f.Protocol
-
-	return
+	_ = "STUB: not implemented"
+	return *new(FiveTupleFingerprint)
 }
 
 func netAddrIPAndPort(addr net.Addr) (net.IP, uint16) {
-	switch a := addr.(type) {
-	case *net.UDPAddr:
-		return a.IP.To16(), uint16(a.Port) // nolint:gosec // G115
-	case *net.TCPAddr:
-		return a.IP.To16(), uint16(a.Port) // nolint:gosec // G115
-	default:
-		return nil, 0
-	}
+	_ = "STUB: not implemented"
+	return *new(net.IP), 0
 }
+
+// nolint:gosec // G115
+
+// nolint:gosec // G115

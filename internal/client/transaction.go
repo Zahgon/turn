@@ -45,90 +45,40 @@ type Transaction struct {
 }
 
 // NewTransaction creates a new instance of Transaction.
-func NewTransaction(config *TransactionConfig) *Transaction {
-	var resultCh chan TransactionResult
-	if !config.IgnoreResult {
-		resultCh = make(chan TransactionResult)
-	}
+func NewTransaction(config *TransactionConfig) *Transaction { _ = "STUB: not implemented"; return nil }
 
-	return &Transaction{
-		Key:      config.Key,      // Read-only
-		Raw:      config.Raw,      // Read-only
-		To:       config.To,       // Read-only
-		interval: config.Interval, // Modified only by the timer thread
-		resultCh: resultCh,        // Thread-safe
-	}
-}
+// Read-only
+// Read-only
+// Read-only
+// Modified only by the timer thread
+// Thread-safe
 
 // StartRtxTimer starts the transaction timer.
 func (t *Transaction) StartRtxTimer(onTimeout func(trKey string, nRtx int)) {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-
-	t.timer = time.AfterFunc(t.interval, func() {
-		t.mutex.Lock()
-		t.nRtx++
-		nRtx := t.nRtx
-		t.interval *= 2
-		if t.interval > maxRtxInterval {
-			t.interval = maxRtxInterval
-		}
-		t.mutex.Unlock()
-		onTimeout(t.Key, nRtx)
-	})
+	_ = "STUB: not implemented"
+	return
 }
 
 // StopRtxTimer stop the transaction timer.
-func (t *Transaction) StopRtxTimer() {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-
-	if t.timer != nil {
-		t.timer.Stop()
-	}
-}
+func (t *Transaction) StopRtxTimer() { _ = "STUB: not implemented"; return }
 
 // WriteResult writes the result to the result channel.
 func (t *Transaction) WriteResult(res TransactionResult) bool {
-	if t.resultCh == nil {
-		return false
-	}
-
-	t.resultCh <- res
-
-	return true
+	_ = "STUB: not implemented"
+	return false
 }
 
 // WaitForResult waits for the transaction result.
 func (t *Transaction) WaitForResult() TransactionResult {
-	if t.resultCh == nil {
-		return TransactionResult{
-			Err: errWaitForResultOnNonResultTransaction,
-		}
-	}
-
-	result, ok := <-t.resultCh
-	if !ok {
-		result.Err = errTransactionClosed
-	}
-
-	return result
+	_ = "STUB: not implemented"
+	return *new(TransactionResult)
 }
 
 // Close closes the transaction.
-func (t *Transaction) Close() {
-	if t.resultCh != nil {
-		close(t.resultCh)
-	}
-}
+func (t *Transaction) Close() { _ = "STUB: not implemented"; return }
 
 // Retries returns the number of retransmission it has made.
-func (t *Transaction) Retries() int {
-	t.mutex.RLock()
-	defer t.mutex.RUnlock()
-
-	return t.nRtx
-}
+func (t *Transaction) Retries() int { _ = "STUB: not implemented"; return 0 }
 
 // TransactionMap is a thread-safe transaction map.
 type TransactionMap struct {
@@ -137,55 +87,25 @@ type TransactionMap struct {
 }
 
 // NewTransactionMap create a new instance of the transaction map.
-func NewTransactionMap() *TransactionMap {
-	return &TransactionMap{
-		trMap: map[string]*Transaction{},
-	}
-}
+func NewTransactionMap() *TransactionMap { _ = "STUB: not implemented"; return nil }
 
 // Insert inserts a transaction to the map.
 func (m *TransactionMap) Insert(key string, tr *Transaction) bool {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	m.trMap[key] = tr
-
-	return true
+	_ = "STUB: not implemented"
+	return false
 }
 
 // Find looks up a transaction by its key.
 func (m *TransactionMap) Find(key string) (*Transaction, bool) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	tr, ok := m.trMap[key]
-
-	return tr, ok
+	_ = "STUB: not implemented"
+	return nil, false
 }
 
 // Delete deletes a transaction by its key.
-func (m *TransactionMap) Delete(key string) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	delete(m.trMap, key)
-}
+func (m *TransactionMap) Delete(key string) { _ = "STUB: not implemented"; return }
 
 // CloseAndDeleteAll closes and deletes all transactions.
-func (m *TransactionMap) CloseAndDeleteAll() {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	for trKey, tr := range m.trMap {
-		tr.Close()
-		delete(m.trMap, trKey)
-	}
-}
+func (m *TransactionMap) CloseAndDeleteAll() { _ = "STUB: not implemented"; return }
 
 // Size returns the length of the transaction map.
-func (m *TransactionMap) Size() int {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	return len(m.trMap)
-}
+func (m *TransactionMap) Size() int { _ = "STUB: not implemented"; return 0 }

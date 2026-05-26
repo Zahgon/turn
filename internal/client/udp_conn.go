@@ -5,14 +5,9 @@
 package client
 
 import (
-	"errors"
-	"fmt"
-	"io"
-	"math"
 	"net"
 	"time"
 
-	"github.com/pion/stun/v3"
 	"github.com/pion/turn/v5/internal/proto"
 )
 
@@ -47,78 +42,7 @@ type UDPConn struct {
 }
 
 // NewUDPConn creates a new instance of UDPConn.
-func NewUDPConn(config *AllocationConfig) *UDPConn {
-	conn := &UDPConn{
-		bindingMgr:             newBindingManager(),
-		readCh:                 make(chan *inboundData, maxReadQueueSize),
-		closeCh:                make(chan struct{}),
-		bindingRefreshInterval: defaultBindingRefreshInterval,
-		allocation: allocation{
-			client:      config.Client,
-			relayedAddr: config.RelayedAddr,
-			serverAddr:  config.ServerAddr,
-			readTimer:   time.NewTimer(time.Duration(math.MaxInt64)),
-			permMap:     newPermissionMap(),
-			username:    config.Username,
-			realm:       config.Realm,
-			integrity:   config.Integrity,
-			_nonce:      config.Nonce,
-			_lifetime:   config.Lifetime,
-			net:         config.Net,
-			log:         config.Log,
-		},
-	}
-
-	if config.BindingRefreshInterval != 0 {
-		conn.bindingRefreshInterval = config.BindingRefreshInterval
-	}
-
-	conn.log.Debugf("Initial lifetime: %d seconds", int(conn.lifetime().Seconds()))
-
-	conn.refreshAllocTimer = NewPeriodicTimer(
-		timerIDRefreshAlloc,
-		conn.onRefreshTimers,
-		conn.lifetime()/2,
-	)
-
-	permRefreshInterval := defaultPermRefreshInterval
-	if config.PermissionRefreshInterval != 0 {
-		permRefreshInterval = config.PermissionRefreshInterval
-	}
-
-	conn.refreshPermsTimer = NewPeriodicTimer(
-		timerIDRefreshPerms,
-		conn.onRefreshTimers,
-		permRefreshInterval,
-	)
-
-	bindingCheckInterval := defaultBindingCheckInterval
-	if config.BindingCheckInterval != 0 {
-		bindingCheckInterval = config.BindingCheckInterval
-	}
-
-	conn.checkBindingsTimer = NewPeriodicTimer(
-		timerIDCheckBindings,
-		func(timerID int) {
-			for _, bound := range conn.bindingMgr.all() {
-				conn.maybeBind(bound)
-			}
-		},
-		bindingCheckInterval,
-	)
-
-	if conn.refreshAllocTimer.Start() {
-		conn.log.Debugf("Started refresh allocation timer")
-	}
-	if conn.refreshPermsTimer.Start() {
-		conn.log.Debugf("Started refresh permission timer")
-	}
-	if conn.checkBindingsTimer.Start() {
-		conn.log.Debugf("Started check bindings timer")
-	}
-
-	return conn
-}
+func NewUDPConn(config *AllocationConfig) *UDPConn { _ = "STUB: not implemented"; return nil }
 
 // ReadFrom reads a packet from the connection,
 // copying the payload into p. It returns the number of
@@ -131,186 +55,83 @@ func NewUDPConn(config *AllocationConfig) *UDPConn {
 // an Error with Timeout() == true after a fixed time limit;
 // see SetDeadline and SetReadDeadline.
 func (c *UDPConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	for {
-		select {
-		case ibData := <-c.readCh:
-			n := copy(p, ibData.data)
-			if n < len(ibData.data) {
-				return 0, nil, io.ErrShortBuffer
-			}
-
-			return n, ibData.from, nil
-
-		case <-c.readTimer.C:
-			return 0, nil, &net.OpError{
-				Op:   "read",
-				Net:  c.LocalAddr().Network(),
-				Addr: c.LocalAddr(),
-				Err:  newTimeoutError("i/o timeout"),
-			}
-
-		case <-c.closeCh:
-			return 0, nil, &net.OpError{
-				Op:   "read",
-				Net:  c.LocalAddr().Network(),
-				Addr: c.LocalAddr(),
-				Err:  errClosed,
-			}
-		}
-	}
+	_ = "STUB: not implemented"
+	return 0, *new(net.Addr), nil
 }
 
 func (a *allocation) createPermission(perm *permission, addr net.Addr) error {
-	perm.mutex.Lock()
-	defer perm.mutex.Unlock()
-
-	if perm.state() == permStateIdle {
-		// Punch a hole! (this would block a bit..)
-		if err := a.CreatePermissions(addr); err != nil {
-			a.permMap.delete(addr)
-
-			return err
-		}
-		perm.setState(permStatePermitted)
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
+
+// Punch a hole! (this would block a bit..)
 
 // WriteTo writes a packet with payload to addr.
 // WriteTo can be made to time out and return
 // an Error with Timeout() == true after a fixed time limit;
 // see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
-func (c *UDPConn) WriteTo(payload []byte, addr net.Addr) (int, error) { //nolint:gocognit,cyclop
-	var err error
-	_, ok := addr.(*net.UDPAddr)
-	if !ok {
-		return 0, errUDPAddrCast
-	}
-
-	// Check if we have a permission for the destination IP addr
-	perm, ok := c.permMap.find(addr)
-	if !ok {
-		perm = &permission{}
-		c.permMap.insert(addr, perm)
-	}
-
-	for range maxRetryAttempts {
-		// c.createPermission() would block, per destination IP (, or perm),
-		// until the perm state becomes "requested". Purpose of this is to
-		// guarantee the order of packets (within the same perm).
-		// Note that CreatePermission transaction may not be complete before
-		// all the data transmission. This is done assuming that the request
-		// will be most likely successful and we can tolerate some loss of
-		// UDP packet (or reorder), inorder to minimize the latency in most cases.
-		if err = c.createPermission(perm, addr); !errors.Is(err, errTryAgain) {
-			break
-		}
-	}
-	if err != nil {
-		return 0, err
-	}
-
-	// Bind channel
-	bound, ok := c.bindingMgr.findByAddr(addr)
-	if !ok {
-		bound = c.bindingMgr.create(addr)
-	}
-
-	//nolint:nestif
-	if !bound.ok() {
-		// Try to establish an initial binding with the server.
-		// Writes still occur via indications meanwhile.
-		c.maybeBind(bound)
-
-		// Send data using SendIndication
-		peerAddr := addr2PeerAddress(addr)
-		var msg *stun.Message
-		msg, err = stun.Build(
-			stun.TransactionID,
-			stun.NewType(stun.MethodSend, stun.ClassIndication),
-			proto.Data(payload),
-			peerAddr,
-			stun.Fingerprint,
-		)
-		if err != nil {
-			return 0, err
-		}
-
-		if _, err = c.client.WriteTo(msg.Raw, c.serverAddr); err != nil {
-			return 0, err
-		}
-
-		return len(payload), nil
-	}
-
-	// Binding is ready beyond this point, so send over it.
-	_, err = c.sendChannelData(payload, bound.number)
-	if err != nil {
-		return 0, err
-	}
-
-	return len(payload), nil
+func (c *UDPConn) WriteTo(payload []byte, addr net.Addr) (int, error) {
+	_ = "STUB: not implemented" //nolint:gocognit,cyclop
+	return 0, nil
 }
+
+// Check if we have a permission for the destination IP addr
+
+// c.createPermission() would block, per destination IP (, or perm),
+// until the perm state becomes "requested". Purpose of this is to
+// guarantee the order of packets (within the same perm).
+// Note that CreatePermission transaction may not be complete before
+// all the data transmission. This is done assuming that the request
+// will be most likely successful and we can tolerate some loss of
+// UDP packet (or reorder), inorder to minimize the latency in most cases.
+
+// Bind channel
+
+//nolint:nestif
+
+// Try to establish an initial binding with the server.
+// Writes still occur via indications meanwhile.
+
+// Send data using SendIndication
+
+// Binding is ready beyond this point, so send over it.
 
 // Close closes the connection.
 // Any blocked ReadFrom or WriteTo operations will be unblocked and return errors.
-func (c *UDPConn) Close() error {
-	c.refreshAllocTimer.Stop()
-	c.refreshPermsTimer.Stop()
-	c.checkBindingsTimer.Stop()
+func (c *UDPConn) Close() error { _ = "STUB: not implemented"; return nil }
 
-	select {
-	case <-c.closeCh:
-		return errAlreadyClosed
-	default:
-		close(c.closeCh)
-	}
-
-	c.client.OnDeallocated(c.relayedAddr)
-
-	return c.refreshAllocation(0, true /* dontWait=true */)
-}
+/* dontWait=true */
 
 // LocalAddr returns the local network address.
 func (c *UDPConn) LocalAddr() net.Addr {
-	return c.relayedAddr
+	_ = "STUB: not implemented"
+	return *
+
+	// SetDeadline sets the read and write deadlines associated
+	// with the connection. It is equivalent to calling both
+	// SetReadDeadline and SetWriteDeadline.
+	//
+	// A deadline is an absolute time after which I/O operations
+	// fail with a timeout (see type Error) instead of
+	// blocking. The deadline applies to all future and pending
+	// I/O, not just the immediately following call to ReadFrom or
+	// WriteTo. After a deadline has been exceeded, the connection
+	// can be refreshed by setting a deadline in the future.
+	//
+	// An idle timeout can be implemented by repeatedly extending
+	// the deadline after successful ReadFrom or WriteTo calls.
+	//
+	// A zero value for t means I/O operations will not time out.
+	new(net.Addr)
 }
 
-// SetDeadline sets the read and write deadlines associated
-// with the connection. It is equivalent to calling both
-// SetReadDeadline and SetWriteDeadline.
-//
-// A deadline is an absolute time after which I/O operations
-// fail with a timeout (see type Error) instead of
-// blocking. The deadline applies to all future and pending
-// I/O, not just the immediately following call to ReadFrom or
-// WriteTo. After a deadline has been exceeded, the connection
-// can be refreshed by setting a deadline in the future.
-//
-// An idle timeout can be implemented by repeatedly extending
-// the deadline after successful ReadFrom or WriteTo calls.
-//
-// A zero value for t means I/O operations will not time out.
-func (c *UDPConn) SetDeadline(t time.Time) error {
-	return c.SetReadDeadline(t)
-}
+func (c *UDPConn) SetDeadline(t time.Time) error { _ = "STUB: not implemented"; return nil }
 
 // SetReadDeadline sets the deadline for future ReadFrom calls
 // and any currently-blocked ReadFrom call.
 // A zero value for t means ReadFrom will not time out.
-func (c *UDPConn) SetReadDeadline(t time.Time) error {
-	var d time.Duration
-	if t.Equal(noDeadline()) {
-		d = time.Duration(math.MaxInt64)
-	} else {
-		d = time.Until(t)
-	}
-	c.readTimer.Reset(d)
-
-	return nil
-}
+func (c *UDPConn) SetReadDeadline(t time.Time) error { _ = "STUB: not implemented"; return nil }
 
 // SetWriteDeadline sets the deadline for future WriteTo calls
 // and any currently-blocked WriteTo call.
@@ -318,195 +139,56 @@ func (c *UDPConn) SetReadDeadline(t time.Time) error {
 // some of the data was successfully written.
 // A zero value for t means WriteTo will not time out.
 func (c *UDPConn) SetWriteDeadline(time.Time) error {
+	_ = "STUB: not implemented"
 	// Write never blocks.
 	return nil
 }
 
 func addr2PeerAddress(addr net.Addr) proto.PeerAddress {
-	var peerAddr proto.PeerAddress
-	switch a := addr.(type) {
-	case *net.UDPAddr:
-		peerAddr.IP = a.IP
-		peerAddr.Port = a.Port
-	case *net.TCPAddr:
-		peerAddr.IP = a.IP
-		peerAddr.Port = a.Port
-	}
-
-	return peerAddr
+	_ = "STUB: not implemented"
+	return *new(proto.PeerAddress)
 }
 
 // CreatePermissions Issues a CreatePermission request for the supplied addresses
 // as described in https://datatracker.ietf.org/doc/html/rfc5766#section-9
 func (a *allocation) CreatePermissions(addrs ...net.Addr) error {
-	setters := []stun.Setter{
-		stun.TransactionID,
-		stun.NewType(stun.MethodCreatePermission, stun.ClassRequest),
-	}
-
-	for _, addr := range addrs {
-		setters = append(setters, addr2PeerAddress(addr))
-	}
-
-	setters = append(setters,
-		a.username,
-		a.realm,
-		a.nonce(),
-		a.integrity,
-		stun.Fingerprint)
-
-	msg, err := stun.Build(setters...)
-	if err != nil {
-		return err
-	}
-
-	trRes, err := a.client.PerformTransaction(msg, a.serverAddr, false)
-	if err != nil {
-		return err
-	}
-
-	res := trRes.Msg
-
-	if res.Type.Class == stun.ClassErrorResponse {
-		var code stun.ErrorCodeAttribute
-		if err = code.GetFrom(res); err == nil {
-			if code.Code == stun.CodeStaleNonce {
-				a.setNonceFromMsg(res)
-
-				return errTryAgain
-			}
-
-			turnError := &stun.TurnError{
-				StunMessageType: res.Type,
-				ErrorCodeAttr:   code,
-			}
-
-			return turnError
-		}
-
-		return fmt.Errorf("%s", res.Type) //nolint // dynamic errors
-	}
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
+//nolint // dynamic errors
+
 // HandleInbound passes inbound data in UDPConn.
 func (c *UDPConn) HandleInbound(data []byte, from net.Addr) {
+	_ = "STUB: not implemented"
 	// Copy data
-	copied := make([]byte, len(data))
-	copy(copied, data)
-
-	select {
-	case c.readCh <- &inboundData{data: copied, from: from}:
-	default:
-		c.log.Warnf("Receive buffer full")
-	}
+	return
 }
 
 // FindAddrByChannelNumber returns a peer address associated with the
 // channel number on this UDPConn.
 func (c *UDPConn) FindAddrByChannelNumber(chNum uint16) (net.Addr, bool) {
-	b, ok := c.bindingMgr.findByNumber(chNum)
-	if !ok {
-		return nil, false
-	}
-
-	return b.addr, true
+	_ = "STUB: not implemented"
+	return *new(net.Addr), false
 }
 
-func (c *UDPConn) maybeBind(bound *binding) {
-	bind := func() {
-		var err error
-		for range maxRetryAttempts {
-			if err = c.bind(bound); !errors.Is(err, errTryAgain) {
-				break
-			}
-		}
-		if err != nil {
-			c.log.Warnf("Failed to bind channel %d: %s", bound.number, err)
-			bound.setState(bindingStateFailed)
+func (c *UDPConn) maybeBind(bound *binding) { _ = "STUB: not implemented"; return }
 
-			return
-		}
-		bound.setRefreshedAt(time.Now())
-		bound.setState(bindingStateReady)
-	}
+// Block only callers with the same binding until
+// the binding transaction has been complete
 
-	// Block only callers with the same binding until
-	// the binding transaction has been complete
-	bound.muBind.Lock()
-	defer bound.muBind.Unlock()
+// Establish binding with the server if eligible
+// with regard to cases right above.
 
-	state := bound.state()
-	switch {
-	case state == bindingStateIdle:
-		bound.setState(bindingStateRequest)
-	case state == bindingStateReady && time.Since(bound.refreshedAt()) > c.bindingRefreshInterval:
-		bound.setState(bindingStateRefresh)
-	default:
-		return
-	}
+func (c *UDPConn) bind(bound *binding) error { _ = "STUB: not implemented"; return nil }
 
-	// Establish binding with the server if eligible
-	// with regard to cases right above.
-	go bind()
-}
+// nolint:err113
 
-func (c *UDPConn) bind(bound *binding) error {
-	setters := []stun.Setter{
-		stun.TransactionID,
-		stun.NewType(stun.MethodChannelBind, stun.ClassRequest),
-		addr2PeerAddress(bound.addr),
-		proto.ChannelNumber(bound.number),
-		c.username,
-		c.realm,
-		c.nonce(),
-		c.integrity,
-		stun.Fingerprint,
-	}
+// nolint:err113
 
-	msg, err := stun.Build(setters...)
-	if err != nil {
-		return err
-	}
-
-	trRes, err := c.client.PerformTransaction(msg, c.serverAddr, false)
-	if err != nil {
-		return err
-	}
-
-	res := trRes.Msg
-	if res.Type.Class == stun.ClassErrorResponse {
-		var code stun.ErrorCodeAttribute
-		if err = code.GetFrom(res); err == nil {
-			if code.Code == stun.CodeStaleNonce {
-				c.setNonceFromMsg(res)
-
-				return errTryAgain
-			}
-
-			return fmt.Errorf("%w: received error %d", errCannotBindChannel, code.Code) // nolint:err113
-		}
-
-		return fmt.Errorf("%w: unexpected response type %s", errCannotBindChannel, res.Type) // nolint:err113
-	}
-
-	c.log.Debugf("Channel binding successful: %s %d", bound.addr, bound.number)
-
-	// Success.
-	return nil
-}
+// Success.
 
 func (c *UDPConn) sendChannelData(data []byte, chNum uint16) (int, error) {
-	chData := &proto.ChannelData{
-		Data:   data,
-		Number: proto.ChannelNumber(chNum),
-	}
-	chData.Encode()
-	_, err := c.client.WriteTo(chData.Raw, c.serverAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	return len(data), nil
+	_ = "STUB: not implemented"
+	return 0, nil
 }

@@ -12,6 +12,4 @@ import (
 type STUNConn = proto.STUNConn
 
 // NewSTUNConn creates a STUNConn.
-func NewSTUNConn(nextConn net.Conn) *STUNConn {
-	return proto.NewSTUNConn(nextConn)
-}
+func NewSTUNConn(nextConn net.Conn) *STUNConn { _ = "STUB: not implemented"; return nil }

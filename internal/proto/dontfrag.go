@@ -25,25 +25,10 @@ type DontFragment struct{}
 const dontFragmentSize = 0
 
 // AddTo adds DONT-FRAGMENT attribute to message.
-func (DontFragment) AddTo(m *stun.Message) error {
-	m.Add(stun.AttrDontFragment, nil)
-
-	return nil
-}
+func (DontFragment) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // GetFrom decodes DONT-FRAGMENT from message.
-func (d *DontFragment) GetFrom(m *stun.Message) error {
-	v, err := m.Get(stun.AttrDontFragment)
-	if err != nil {
-		return err
-	}
-
-	return stun.CheckSize(stun.AttrDontFragment, len(v), dontFragmentSize)
-}
+func (d *DontFragment) GetFrom(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // IsSet returns true if DONT-FRAGMENT attribute is set.
-func (DontFragment) IsSet(m *stun.Message) bool {
-	_, err := m.Get(stun.AttrDontFragment)
-
-	return err == nil
-}
+func (DontFragment) IsSet(m *stun.Message) bool { _ = "STUB: not implemented"; return false }

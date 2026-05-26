@@ -6,9 +6,6 @@ package client
 import (
 	"net"
 	"sync"
-	"sync/atomic"
-
-	"github.com/pion/turn/v5/internal/ipnet"
 )
 
 type permState int32
@@ -24,13 +21,9 @@ type permission struct {
 	mutex sync.RWMutex // Thread-safe
 }
 
-func (p *permission) setState(state permState) {
-	atomic.StoreInt32((*int32)(&p.st), int32(state))
-}
+func (p *permission) setState(state permState) { _ = "STUB: not implemented"; return }
 
-func (p *permission) state() permState {
-	return permState(atomic.LoadInt32((*int32)(&p.st)))
-}
+func (p *permission) state() permState { _ = "STUB: not implemented"; return *new(permState) }
 
 // Thread-safe permission map.
 type permissionMap struct {
@@ -39,42 +32,17 @@ type permissionMap struct {
 }
 
 func (m *permissionMap) insert(addr net.Addr, p *permission) bool {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	p.addr = addr
-	m.permMap[ipnet.FingerprintAddr(addr)] = p
-
-	return true
+	_ = "STUB: not implemented"
+	return false
 }
 
 func (m *permissionMap) find(addr net.Addr) (*permission, bool) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-	p, ok := m.permMap[ipnet.FingerprintAddr(addr)]
-
-	return p, ok
+	_ = "STUB: not implemented"
+	return nil, false
 }
 
-func (m *permissionMap) delete(addr net.Addr) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	delete(m.permMap, ipnet.FingerprintAddr(addr))
-}
+func (m *permissionMap) delete(addr net.Addr) { _ = "STUB: not implemented"; return }
 
-func (m *permissionMap) addrs() []net.Addr {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
+func (m *permissionMap) addrs() []net.Addr { _ = "STUB: not implemented"; return nil }
 
-	addrs := []net.Addr{}
-	for _, p := range m.permMap {
-		addrs = append(addrs, p.addr)
-	}
-
-	return addrs
-}
-
-func newPermissionMap() *permissionMap {
-	return &permissionMap{
-		permMap: map[string]*permission{},
-	}
-}
+func newPermissionMap() *permissionMap { _ = "STUB: not implemented"; return nil }

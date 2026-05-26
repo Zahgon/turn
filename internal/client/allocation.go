@@ -4,8 +4,6 @@
 package client
 
 import (
-	"errors"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -13,7 +11,6 @@ import (
 	"github.com/pion/logging"
 	"github.com/pion/stun/v3"
 	"github.com/pion/transport/v4"
-	"github.com/pion/turn/v5/internal/proto"
 )
 
 // AllocationConfig is a set of configuration params use by NewUDPConn and NewTCPAllocation.
@@ -52,149 +49,34 @@ type allocation struct {
 }
 
 func (a *allocation) setNonceFromMsg(msg *stun.Message) {
+	_ = "STUB: not implemented"
 	// Update nonce
-	var nonce stun.Nonce
-	if err := nonce.GetFrom(msg); err == nil {
-		a.setNonce(nonce)
-		a.log.Debug("Refresh allocation: 438, got new nonce.")
-	} else {
-		a.log.Warn("Refresh allocation: 438 but no nonce.")
-	}
+	return
 }
 
 func (a *allocation) refreshAllocation(lifetime time.Duration, dontWait bool) error {
-	msg, err := stun.Build(
-		stun.TransactionID,
-		stun.NewType(stun.MethodRefresh, stun.ClassRequest),
-		proto.Lifetime{Duration: lifetime},
-		a.username,
-		a.realm,
-		a.nonce(),
-		a.integrity,
-		stun.Fingerprint,
-	)
-	if err != nil {
-		return fmt.Errorf("%w: %s", errFailedToBuildRefreshRequest, err.Error())
-	}
-
-	a.log.Debugf("Send refresh request (dontWait=%v)", dontWait)
-	trRes, err := a.client.PerformTransaction(msg, a.serverAddr, dontWait)
-	if err != nil {
-		return fmt.Errorf("%w: %s", errFailedToRefreshAllocation, err.Error())
-	}
-
-	if dontWait {
-		a.log.Debug("Refresh request sent")
-
-		return nil
-	}
-
-	a.log.Debug("Refresh request sent, and waiting response")
-
-	res := trRes.Msg
-	if res.Type.Class == stun.ClassErrorResponse {
-		var code stun.ErrorCodeAttribute
-		if err = code.GetFrom(res); err == nil {
-			if code.Code == stun.CodeStaleNonce {
-				a.setNonceFromMsg(res)
-
-				return errTryAgain
-			}
-
-			return err
-		}
-
-		return fmt.Errorf("%s", res.Type) //nolint:err113
-	}
-
-	// Getting lifetime from response
-	var updatedLifetime proto.Lifetime
-	if err := updatedLifetime.GetFrom(res); err != nil {
-		return fmt.Errorf("%w: %s", errFailedToGetLifetime, err.Error())
-	}
-
-	a.setLifetime(updatedLifetime.Duration)
-	a.log.Debugf("Updated lifetime: %d seconds", int(a.lifetime().Seconds()))
-
+	_ = "STUB: not implemented"
 	return nil
 }
 
-func (a *allocation) refreshPermissions() error {
-	addrs := a.permMap.addrs()
-	if len(addrs) == 0 {
-		a.log.Debug("No permission to refresh")
+//nolint:err113
 
-		return nil
-	}
-	if err := a.CreatePermissions(addrs...); err != nil {
-		if errors.Is(err, errTryAgain) {
-			return errTryAgain
-		}
-		a.log.Errorf("Fail to refresh permissions: %s", err)
+// Getting lifetime from response
 
-		return err
-	}
-	a.log.Debug("Refresh permissions successful")
+func (a *allocation) refreshPermissions() error { _ = "STUB: not implemented"; return nil }
 
-	return nil
-}
+func (a *allocation) onRefreshTimers(id int) { _ = "STUB: not implemented"; return }
 
-func (a *allocation) onRefreshTimers(id int) {
-	a.log.Debugf("Refresh timer %d expired", id)
-	switch id {
-	case timerIDRefreshAlloc:
-		var err error
-		lifetime := a.lifetime()
-		// Limit the max retries on errTryAgain to 3
-		// when stale nonce returns, sencond retry should succeed
-		for range maxRetryAttempts {
-			err = a.refreshAllocation(lifetime, false)
-			if !errors.Is(err, errTryAgain) {
-				break
-			}
-		}
-		if err != nil {
-			a.log.Warnf("Failed to refresh allocation: %s", err)
-		}
-	case timerIDRefreshPerms:
-		var err error
-		for range maxRetryAttempts {
-			err = a.refreshPermissions()
-			if !errors.Is(err, errTryAgain) {
-				break
-			}
-		}
-		if err != nil {
-			a.log.Warnf("Failed to refresh permissions: %s", err)
-		}
-	}
-}
+// Limit the max retries on errTryAgain to 3
+// when stale nonce returns, sencond retry should succeed
 
-func (a *allocation) nonce() stun.Nonce {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
+func (a *allocation) nonce() stun.Nonce { _ = "STUB: not implemented"; return *new(stun.Nonce) }
 
-	return a._nonce
-}
-
-func (a *allocation) setNonce(nonce stun.Nonce) {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-
-	a.log.Debugf("Set new nonce with %d bytes", len(nonce))
-	a._nonce = nonce
-}
+func (a *allocation) setNonce(nonce stun.Nonce) { _ = "STUB: not implemented"; return }
 
 func (a *allocation) lifetime() time.Duration {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
-
-	return a._lifetime
+	_ = "STUB: not implemented"
+	return *new(time.Duration)
 }
 
-func (a *allocation) setLifetime(lifetime time.Duration) {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-
-	a._lifetime = lifetime
-}
+func (a *allocation) setLifetime(lifetime time.Duration) { _ = "STUB: not implemented"; return }

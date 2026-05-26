@@ -29,16 +29,8 @@ type timeoutError struct {
 	msg string
 }
 
-func newTimeoutError(msg string) error {
-	return &timeoutError{
-		msg: msg,
-	}
-}
+func newTimeoutError(msg string) error { _ = "STUB: not implemented"; return nil }
 
-func (e *timeoutError) Error() string {
-	return e.msg
-}
+func (e *timeoutError) Error() string { _ = "STUB: not implemented"; return "" }
 
-func (e *timeoutError) Timeout() bool {
-	return true
-}
+func (e *timeoutError) Timeout() bool { _ = "STUB: not implemented"; return false }

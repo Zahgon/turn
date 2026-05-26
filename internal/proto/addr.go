@@ -4,9 +4,7 @@
 package proto
 
 import (
-	"fmt"
 	"net"
-	"strconv"
 )
 
 // Addr is ip:port.
@@ -16,31 +14,22 @@ type Addr struct {
 }
 
 // Network implements net.Addr.
-func (Addr) Network() string { return "turn" }
+func (Addr) Network() string {
+	_ = "STUB: not implemented"
 
-// FromUDPAddr sets addr to UDPAddr.
-func (a *Addr) FromUDPAddr(n *net.UDPAddr) {
-	a.IP = n.IP
-	a.Port = n.Port
+	// FromUDPAddr sets addr to UDPAddr.
+	return ""
 }
+
+func (a *Addr) FromUDPAddr(n *net.UDPAddr) { _ = "STUB: not implemented"; return }
 
 // Equal returns true if b == a.
-func (a Addr) Equal(b Addr) bool {
-	if a.Port != b.Port {
-		return false
-	}
-
-	return a.IP.Equal(b.IP)
-}
+func (a Addr) Equal(b Addr) bool { _ = "STUB: not implemented"; return false }
 
 // EqualIP returns true if a and b have equal IP addresses.
-func (a Addr) EqualIP(b Addr) bool {
-	return a.IP.Equal(b.IP)
-}
+func (a Addr) EqualIP(b Addr) bool { _ = "STUB: not implemented"; return false }
 
-func (a Addr) String() string {
-	return net.JoinHostPort(a.IP.String(), strconv.Itoa(a.Port))
-}
+func (a Addr) String() string { _ = "STUB: not implemented"; return "" }
 
 // FiveTuple represents 5-TUPLE value.
 type FiveTuple struct {
@@ -49,23 +38,7 @@ type FiveTuple struct {
 	Proto  Protocol
 }
 
-func (t FiveTuple) String() string {
-	return fmt.Sprintf("%s->%s (%s)",
-		t.Client, t.Server, t.Proto,
-	)
-}
+func (t FiveTuple) String() string { _ = "STUB: not implemented"; return "" }
 
 // Equal returns true if b == t.
-func (t FiveTuple) Equal(b FiveTuple) bool {
-	if t.Proto != b.Proto {
-		return false
-	}
-	if !t.Client.Equal(b.Client) {
-		return false
-	}
-	if !t.Server.Equal(b.Server) {
-		return false
-	}
-
-	return true
-}
+func (t FiveTuple) Equal(b FiveTuple) bool { _ = "STUB: not implemented"; return false }

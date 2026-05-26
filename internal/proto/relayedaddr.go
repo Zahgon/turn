@@ -20,19 +20,13 @@ type RelayedAddress struct {
 	Port int
 }
 
-func (a RelayedAddress) String() string {
-	return stun.XORMappedAddress(a).String()
-}
+func (a RelayedAddress) String() string { _ = "STUB: not implemented"; return "" }
 
 // AddTo adds XOR-PEER-ADDRESS to message.
-func (a RelayedAddress) AddTo(m *stun.Message) error {
-	return stun.XORMappedAddress(a).AddToAs(m, stun.AttrXORRelayedAddress)
-}
+func (a RelayedAddress) AddTo(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // GetFrom decodes XOR-PEER-ADDRESS from message.
-func (a *RelayedAddress) GetFrom(m *stun.Message) error {
-	return (*stun.XORMappedAddress)(a).GetFromAs(m, stun.AttrXORRelayedAddress)
-}
+func (a *RelayedAddress) GetFrom(m *stun.Message) error { _ = "STUB: not implemented"; return nil }
 
 // XORRelayedAddress implements XOR-RELAYED-ADDRESS attribute.
 //

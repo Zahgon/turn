@@ -10,7 +10,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -19,9 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
-	"github.com/pion/logging"
 	"github.com/pion/turn/v5"
 	"golang.org/x/time/rate"
 )
@@ -37,25 +34,20 @@ type userRateLimiters struct {
 	burst    int
 }
 
-func newUserRateLimiters(bytesPerSec int) *userRateLimiters {
-	return &userRateLimiters{
-		limit: rate.Limit(bytesPerSec),
-		burst: bytesPerSec, // Allow burst up to 1 second worth of data.
-	}
-}
+func newUserRateLimiters(bytesPerSec int) *userRateLimiters { _ = "STUB: not implemented"; return nil }
+
+// Allow burst up to 1 second worth of data.
 
 func (u *userRateLimiters) getLimiter(userID, realm string) *rate.Limiter {
-	key := userID + ":" + realm
-	if limiter, ok := u.limiters.Load(key); ok {
-		return limiter.(*rate.Limiter) //nolint:forcetypeassert
-	}
-
-	// Create new limiter for this user.
-	limiter := rate.NewLimiter(u.limit, u.burst)
-	actual, _ := u.limiters.LoadOrStore(key, limiter)
-
-	return actual.(*rate.Limiter) //nolint:forcetypeassert
+	_ = "STUB: not implemented"
+	return nil
 }
+
+//nolint:forcetypeassert
+
+// Create new limiter for this user.
+
+//nolint:forcetypeassert
 
 // rateLimitedConn wraps a net.PacketConn with rate limiting.
 // Both ReadFrom and WriteTo consume tokens from the same limiter, implementing
@@ -66,26 +58,16 @@ type rateLimitedConn struct {
 }
 
 func (c *rateLimitedConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
-	n, addr, err = c.PacketConn.ReadFrom(p)
-	if err != nil {
-		return n, addr, err
-	}
-
-	if !c.limiter.AllowN(time.Now(), n) {
-		return c.ReadFrom(p)
-	}
-
-	return n, addr, nil
+	_ = "STUB: not implemented"
+	return 0, *new(net.Addr), nil
 }
 
 func (c *rateLimitedConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
-	if !c.limiter.AllowN(time.Now(), len(p)) {
-		// Silently drop packet
-		return len(p), nil
-	}
-
-	return c.PacketConn.WriteTo(p, addr)
+	_ = "STUB: not implemented"
+	return 0, nil
 }
+
+// Silently drop packet
 
 // bwQuotaGenerator wraps a RelayAddressGenerator to add bandwidth quota enforcement.
 type bwQuotaGenerator struct {
@@ -94,18 +76,8 @@ type bwQuotaGenerator struct {
 }
 
 func (g *bwQuotaGenerator) AllocatePacketConn(conf turn.AllocateListenerConfig) (net.PacketConn, net.Addr, error) {
-	conn, addr, err := g.RelayAddressGenerator.AllocatePacketConn(conf)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	limiter := g.rateLimiters.getLimiter(conf.UserID, conf.Realm)
-	wrappedConn := &rateLimitedConn{
-		PacketConn: conn,
-		limiter:    limiter,
-	}
-
-	return wrappedConn, addr, nil
+	_ = "STUB: not implemented"
+	return *new(net.PacketConn), *new(net.Addr), nil
 }
 
 func main() { //nolint:cyclop
@@ -191,108 +163,21 @@ func main() { //nolint:cyclop
 
 // runTestClient starts a TURN client, allocates a relay, and exposes a UDP echo server.
 // This allows testing the bandwidth quota with tools like iperf.
-func runTestClient(publicIP string, port int, realm, users string, peer, testPort string) { //nolint:cyclop
+func runTestClient(publicIP string, port int, realm, users string, peer, testPort string) {
+	_ = "STUB: not implemented" //nolint:cyclop
 	// Parse first user credentials.
-	userPass := strings.Split(users, ",")[0]
-	parts := strings.SplitN(userPass, "=", 2)
-	if len(parts) != 2 {
-		log.Fatalf("Invalid user credential format: %s", userPass)
-	}
-	username, password := parts[0], parts[1]
-
-	// Small delay to let server start.
-	time.Sleep(150 * time.Millisecond)
-
-	var err error
-
-	turnConn, err := net.ListenPacket("udp4", "0.0.0.0:0") //nolint:noctx
-	if err != nil {
-		log.Panicf("Failed to create client connection: %s", err)
-	}
-
-	turnServerAddr := net.JoinHostPort(publicIP, strconv.Itoa(port))
-
-	testClient, err := turn.NewClient(&turn.ClientConfig{
-		STUNServerAddr: turnServerAddr,
-		TURNServerAddr: turnServerAddr,
-		Conn:           turnConn,
-		Username:       username,
-		Password:       password,
-		Realm:          realm,
-		LoggerFactory:  logging.NewDefaultLoggerFactory(),
-	})
-	if err != nil {
-		log.Panicf("Failed to create TURN client: %s", err)
-	}
-
-	if err = testClient.Listen(); err != nil {
-		log.Panicf("Failed to listen: %s", err)
-	}
-
-	testRelayConn, err := testClient.Allocate()
-	if err != nil {
-		log.Panicf("Failed to allocate client relay: %s", err)
-	}
-
-	// Create a UDP echo server that forwards traffic through the relay.
-	testEchoListener, err := net.ListenPacket("udp4", net.JoinHostPort("127.0.0.1", testPort)) //nolint:noctx
-	if err != nil {
-		log.Panicf("Failed to create UDP client proxy listener: %s", err)
-	}
-
-	peerAddr, err := net.ResolveUDPAddr("udp", peer)
-	if err != nil {
-		log.Panicf("Failed to resolve peer address: %s", err)
-	}
-
-	log.Printf("Test UDP client proxy listening on %s", testEchoListener.LocalAddr().String())
-	log.Printf("To test bandwidth quota, use iperf:")
-	log.Printf("  Server (at %s): iperf -s -u -p %d", peerAddr.IP, peerAddr.Port)
-	log.Printf("  Client: iperf -c %s -u -p %s -b 1M -t 10",
-		testEchoListener.LocalAddr().(*net.UDPAddr).IP, testPort) //nolint:forcetypeassert
-
-	mu := sync.Mutex{}
-	var clientAddr net.Addr
-	go func() {
-		buf := make([]byte, 65535)
-		for {
-			n, _, readErr := testRelayConn.ReadFrom(buf)
-			if readErr != nil {
-				return
-			}
-
-			// Identify client and drop packet if client hasn'y shown up yet.
-			mu.Lock()
-			addr := clientAddr
-			mu.Unlock()
-			if addr == nil {
-				continue
-			}
-
-			if _, writeErr := testEchoListener.WriteTo(buf[:n], clientAddr); writeErr != nil {
-				log.Printf("Failed to write to relay: %s", writeErr)
-			}
-		}
-	}()
-
-	go func() {
-		buf := make([]byte, 65535)
-		for {
-			n, addr, readErr := testEchoListener.ReadFrom(buf)
-			if readErr != nil {
-				return
-			}
-
-			// Store client address
-			mu.Lock()
-			clientAddr = addr
-			mu.Unlock()
-
-			if _, writeErr := testRelayConn.WriteTo(buf[:n], peerAddr); writeErr != nil {
-				log.Printf("Failed to forward to relay: %s", writeErr)
-			}
-		}
-	}()
-
-	fmt.Println("Test mode active. Press Ctrl+C to stop.")
+	return
 }
+
+// Small delay to let server start.
+
+//nolint:noctx
+
+// Create a UDP echo server that forwards traffic through the relay.
+//nolint:noctx
+
+//nolint:forcetypeassert
+
+// Identify client and drop packet if client hasn'y shown up yet.
+
+// Store client address

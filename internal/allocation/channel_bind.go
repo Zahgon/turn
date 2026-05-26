@@ -24,23 +24,10 @@ type ChannelBind struct {
 
 // NewChannelBind creates a new ChannelBind.
 func NewChannelBind(number proto.ChannelNumber, peer net.Addr, log logging.LeveledLogger) *ChannelBind {
-	return &ChannelBind{
-		Number: number,
-		Peer:   peer,
-		log:    log,
-	}
+	_ = "STUB: not implemented"
+	return nil
 }
 
-func (c *ChannelBind) start(lifetime time.Duration) {
-	c.lifetimeTimer = time.AfterFunc(lifetime, func() {
-		if !c.allocation.RemoveChannelBind(c.Number) {
-			c.log.Errorf("Failed to remove ChannelBind for %v %x %v", c.Number, c.Peer, c.allocation.fiveTuple)
-		}
-	})
-}
+func (c *ChannelBind) start(lifetime time.Duration) { _ = "STUB: not implemented"; return }
 
-func (c *ChannelBind) refresh(lifetime time.Duration) {
-	if !c.lifetimeTimer.Reset(lifetime) {
-		c.log.Errorf("Failed to reset ChannelBind timer for %v %x %v", c.Number, c.Peer, c.allocation.fiveTuple)
-	}
-}
+func (c *ChannelBind) refresh(lifetime time.Duration) { _ = "STUB: not implemented"; return }

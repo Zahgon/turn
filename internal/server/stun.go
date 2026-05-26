@@ -5,21 +5,9 @@ package server
 
 import (
 	"github.com/pion/stun/v3"
-	"github.com/pion/turn/v5/internal/ipnet"
 )
 
 func handleBindingRequest(req Request, stunMsg *stun.Message) error {
-	req.Log.Debugf("Received BindingRequest from %s", req.SrcAddr)
-
-	ip, port, err := ipnet.AddrIPPort(req.SrcAddr)
-	if err != nil {
-		return err
-	}
-
-	attrs := buildMsg(stunMsg.TransactionID, stun.BindingSuccess, &stun.XORMappedAddress{
-		IP:   ip,
-		Port: port,
-	}, stun.Fingerprint)
-
-	return buildAndSend(req.Conn, req.SrcAddr, attrs...)
+	_ = "STUB: not implemented"
+	return nil
 }

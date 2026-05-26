@@ -4,12 +4,9 @@
 package proto
 
 import (
-	"encoding/binary"
 	"errors"
 	"net"
 	"time"
-
-	"github.com/pion/stun/v3"
 )
 
 var (
@@ -34,95 +31,47 @@ const (
 // If the buffer isn't a valid STUN or ChannelData packet,
 // or the length doesn't match return false.
 func consumeSingleTURNFrame(b []byte) (int, error) {
+	_ = "STUB: not implemented"
 	// Too short to determine if ChannelData or STUN
-	if len(b) < 9 {
-		return 0, errIncompleteTURNFrame
-	}
-
-	var datagramSize uint16
-	switch {
-	case stun.IsMessage(b):
-		datagramSize = binary.BigEndian.Uint16(b[2:4]) + stunHeaderSize
-	case ChannelNumber(binary.BigEndian.Uint16(b[0:2])).Valid():
-		datagramSize = binary.BigEndian.Uint16(b[channelDataNumberSize:channelDataHeaderSize])
-		if paddingOverflow := (datagramSize + channelDataPadding) % channelDataPadding; paddingOverflow != 0 {
-			datagramSize = (datagramSize + channelDataPadding) - paddingOverflow
-		}
-
-		datagramSize += channelDataHeaderSize
-	case len(b) < stunHeaderSize:
-		return 0, errIncompleteTURNFrame
-	default:
-		return 0, errInvalidTURNFrame
-	}
-
-	if len(b) < int(datagramSize) {
-		return 0, errIncompleteTURNFrame
-	}
-
-	return int(datagramSize), nil
+	return 0, nil
 }
 
 // ReadFrom implements ReadFrom from net.PacketConn.
 func (s *STUNConn) ReadFrom(payload []byte) (n int, addr net.Addr, err error) {
+	_ = "STUB: not implemented"
 	// First pass any buffered data from previous reads
-	n, err = consumeSingleTURNFrame(s.buff)
-	if errors.Is(err, errInvalidTURNFrame) {
-		return 0, nil, err
-	} else if err == nil {
-		copy(payload, s.buff[:n])
-		s.buff = s.buff[n:]
-
-		return n, s.nextConn.RemoteAddr(), nil
-	}
-
-	// Then read from the nextConn, appending to our buff
-	n, err = s.nextConn.Read(payload)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	s.buff = append(s.buff, append([]byte{}, payload[:n]...)...)
-
-	return s.ReadFrom(payload)
+	return 0, *new(net.Addr), nil
 }
+
+// Then read from the nextConn, appending to our buff
 
 // WriteTo implements WriteTo from net.PacketConn.
 func (s *STUNConn) WriteTo(payload []byte, _ net.Addr) (n int, err error) {
-	return s.nextConn.Write(payload)
+	_ = "STUB: not implemented"
+	return 0, nil
 }
 
 // Close implements Close from net.PacketConn.
-func (s *STUNConn) Close() error {
-	return s.nextConn.Close()
-}
+func (s *STUNConn) Close() error { _ = "STUB: not implemented"; return nil }
 
 // LocalAddr implements LocalAddr from net.PacketConn.
-func (s *STUNConn) LocalAddr() net.Addr {
-	return s.nextConn.LocalAddr()
-}
+func (s *STUNConn) LocalAddr() net.Addr { _ = "STUB: not implemented"; return *new(net.Addr) }
 
 // SetDeadline implements SetDeadline from net.PacketConn.
-func (s *STUNConn) SetDeadline(t time.Time) error {
-	return s.nextConn.SetDeadline(t)
-}
+func (s *STUNConn) SetDeadline(t time.Time) error { _ = "STUB: not implemented"; return nil }
 
 // SetReadDeadline implements SetReadDeadline from net.PacketConn.
-func (s *STUNConn) SetReadDeadline(t time.Time) error {
-	return s.nextConn.SetReadDeadline(t)
-}
+func (s *STUNConn) SetReadDeadline(t time.Time) error { _ = "STUB: not implemented"; return nil }
 
 // SetWriteDeadline implements SetWriteDeadline from net.PacketConn.
-func (s *STUNConn) SetWriteDeadline(t time.Time) error {
-	return s.nextConn.SetWriteDeadline(t)
-}
+func (s *STUNConn) SetWriteDeadline(t time.Time) error { _ = "STUB: not implemented"; return nil }
 
 // Conn returns the net.Conn used for this STUNConn.
 func (s *STUNConn) Conn() net.Conn {
-	return s.nextConn
+	_ = "STUB: not implemented"
+
+	// NewSTUNConn creates a STUNConn.
+	return *new(net.Conn)
 }
 
-// NewSTUNConn creates a STUNConn.
-func NewSTUNConn(nextConn net.Conn) *STUNConn {
-	return &STUNConn{nextConn: nextConn}
-}
+func NewSTUNConn(nextConn net.Conn) *STUNConn { _ = "STUB: not implemented"; return nil }

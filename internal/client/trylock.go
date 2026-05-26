@@ -3,10 +3,6 @@
 
 package client
 
-import (
-	"sync/atomic"
-)
-
 // TryLock implement the classic  "try-lock" operation.
 type TryLock struct {
 	n int32
@@ -14,15 +10,7 @@ type TryLock struct {
 
 // Lock tries to lock the try-lock. If successful, it returns true.
 // Otherwise, it returns false immediately.
-func (c *TryLock) Lock() error {
-	if !atomic.CompareAndSwapInt32(&c.n, 0, 1) {
-		return errDoubleLock
-	}
-
-	return nil
-}
+func (c *TryLock) Lock() error { _ = "STUB: not implemented"; return nil }
 
 // Unlock unlocks the try-lock.
-func (c *TryLock) Unlock() {
-	atomic.StoreInt32(&c.n, 0)
-}
+func (c *TryLock) Unlock() { _ = "STUB: not implemented"; return }

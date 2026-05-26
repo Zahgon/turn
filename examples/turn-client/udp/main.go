@@ -10,7 +10,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/pion/logging"
 	"github.com/pion/turn/v5"
@@ -96,80 +95,27 @@ func main() { //nolint:cyclop
 	}
 }
 
-func doPingTest(client *turn.Client, relayConn net.PacketConn) error { //nolint:cyclop
+func doPingTest(client *turn.Client, relayConn net.PacketConn) error {
+	_ = "STUB: not implemented" //nolint:cyclop
 	// Send BindingRequest to learn our external IP
-	mappedAddr, err := client.SendBindingRequest()
-	if err != nil {
-		return err
-	}
-
-	// Set up pinger socket (pingerConn)
-	pingerConn, err := net.ListenPacket("udp4", "0.0.0.0:0") // nolint: noctx
-	if err != nil {
-		log.Panicf("Failed to listen: %s", err)
-	}
-	defer func() {
-		if closeErr := pingerConn.Close(); closeErr != nil {
-			log.Panicf("Failed to close connection: %s", closeErr)
-		}
-	}()
-
-	// Punch a UDP hole for the relayConn by sending a data to the mappedAddr.
-	// This will trigger a TURN client to generate a permission request to the
-	// TURN server. After this, packets from the IP address will be accepted by
-	// the TURN server.
-	_, err = relayConn.WriteTo([]byte("Hello"), mappedAddr)
-	if err != nil {
-		return err
-	}
-
-	// Start read-loop on pingerConn
-	go func() {
-		buf := make([]byte, 1600)
-		for {
-			n, from, pingerErr := pingerConn.ReadFrom(buf)
-			if pingerErr != nil {
-				break
-			}
-
-			msg := string(buf[:n])
-			if sentAt, pingerErr := time.Parse(time.RFC3339Nano, msg); pingerErr == nil {
-				rtt := time.Since(sentAt)
-				log.Printf("%d bytes from from %s time=%d ms\n", n, from.String(), int(rtt.Seconds()*1000))
-			}
-		}
-	}()
-
-	// Start read-loop on relayConn
-	go func() {
-		buf := make([]byte, 1600)
-		for {
-			n, from, readerErr := relayConn.ReadFrom(buf)
-			if readerErr != nil {
-				break
-			}
-
-			// Echo back
-			if _, readerErr = relayConn.WriteTo(buf[:n], from); readerErr != nil {
-				break
-			}
-		}
-	}()
-
-	time.Sleep(500 * time.Millisecond)
-
-	// Send 10 packets from relayConn to the echo server
-	for range 10 {
-		msg := time.Now().Format(time.RFC3339Nano)
-		_, err = pingerConn.WriteTo([]byte(msg), relayConn.LocalAddr())
-		if err != nil {
-			return err
-		}
-
-		// For simplicity, this example does not wait for the pong (reply).
-		// Instead, sleep 1 second.
-		time.Sleep(time.Second)
-	}
-
 	return nil
 }
+
+// Set up pinger socket (pingerConn)
+// nolint: noctx
+
+// Punch a UDP hole for the relayConn by sending a data to the mappedAddr.
+// This will trigger a TURN client to generate a permission request to the
+// TURN server. After this, packets from the IP address will be accepted by
+// the TURN server.
+
+// Start read-loop on pingerConn
+
+// Start read-loop on relayConn
+
+// Echo back
+
+// Send 10 packets from relayConn to the echo server
+
+// For simplicity, this example does not wait for the pong (reply).
+// Instead, sleep 1 second.

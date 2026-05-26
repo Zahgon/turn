@@ -15,7 +15,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/pion/stun/v3"
 	"github.com/pion/turn/v5"
 )
 
@@ -26,21 +25,8 @@ type attributeAdder struct {
 }
 
 func (s *attributeAdder) WriteTo(payload []byte, addr net.Addr) (n int, err error) {
-	if stun.IsMessage(payload) {
-		m := &stun.Message{Raw: payload}
-		if err = m.Decode(); err != nil {
-			return
-		}
-
-		if err = stun.NewSoftware("CustomTURNServer").AddTo(m); err != nil {
-			return
-		}
-
-		m.Encode()
-		payload = m.Raw
-	}
-
-	return s.PacketConn.WriteTo(payload, addr)
+	_ = "STUB: not implemented"
+	return 0, nil
 }
 
 func main() {

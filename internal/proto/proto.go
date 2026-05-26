@@ -18,14 +18,15 @@ const (
 
 // CreatePermissionRequest is shorthand for create permission request type.
 func CreatePermissionRequest() stun.MessageType {
-	return stun.NewType(stun.MethodCreatePermission, stun.ClassRequest)
+	_ = "STUB: not implemented"
+	return *new(stun.MessageType)
 }
 
 // AllocateRequest is shorthand for allocation request message type.
-func AllocateRequest() stun.MessageType { return stun.NewType(stun.MethodAllocate, stun.ClassRequest) }
+func AllocateRequest() stun.MessageType { _ = "STUB: not implemented"; return *new(stun.MessageType) }
 
 // SendIndication is shorthand for send indication message type.
-func SendIndication() stun.MessageType { return stun.NewType(stun.MethodSend, stun.ClassIndication) }
+func SendIndication() stun.MessageType { _ = "STUB: not implemented"; return *new(stun.MessageType) }
 
 // RefreshRequest is shorthand for refresh request message type.
-func RefreshRequest() stun.MessageType { return stun.NewType(stun.MethodRefresh, stun.ClassRequest) }
+func RefreshRequest() stun.MessageType { _ = "STUB: not implemented"; return *new(stun.MessageType) }
